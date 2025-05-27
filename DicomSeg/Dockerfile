@@ -1,4 +1,11 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
+
+
+LABEL name="DicomSegConverter"
+LABEL version="1.3"
+LABEL authorization="This Dockerfile is intended to build a container image that will be publicly accessible in the platform images repository."
+
+
 COPY  dcmqi-function /usr/dcmqi
 RUN apt-get update \
     && apt-get install -y build-essential \
@@ -16,9 +23,15 @@ ENV BASH_ENV=~/.bashrc
 ENV ENV_NAME=dicomseg
 COPY dicomsegconv_2.sh /usr/dcmqi/bin/dicomsegconv.sh
 COPY dicom_conversion.py /usr/dcmqi/bin/dcm2nifti.py
-COPY dicomseg2nifti /usr/dicomseg2nifti
+COPY algorithm_name_correction.py /usr/dcmqi/bin/algorithm_name_correction.py
+COPY rtstruct /usr/rtstruct
+ENV PATH="${PATH}:/usr/rtstruct"
+RUN chmod +x /usr/rtstruct/install_enviorment.sh
+RUN /usr/rtstruct/install_enviorment.sh
+COPY run_script.sh /usr/rtstruct/run_script
+RUN chmod +x /usr/rtstruct/run_script
+COPY dicoseg2nifti /usr/dicomseg2nifti
 ENV PATH="${PATH}:/usr/dcmqi/bin"
 ENV PATH="${PATH}:/usr/dicomseg2nifti"
-COPY algorithm_name_correction.py /usr/dcmqi/bin/algorithm_name_correction.py
 
-# ENTRYPOINT ["dicomsegconv.sh"]
+ENTRYPOINT ["dicomsegconv.sh"]

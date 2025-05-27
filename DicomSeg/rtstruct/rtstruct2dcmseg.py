@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+
+
 import os
 import pydicom
 import numpy as np
@@ -358,25 +361,49 @@ if __name__ == "__main__":
     
     import argparse
     
-    parser = argparse.ArgumentParser(description="Convert RTSTRUCT to DICOM SEG")
-    parser.add_argument("dicom_series_path", help="Path to the DICOM series directory")
-    parser.add_argument("rtstruct_path", help="Path to the RTSTRUCT DICOM file")
-    parser.add_argument("output_seg_path", help="Path to save the output DICOM SEG file")
-    parser.add_argument("--config", help="Path to the YAML configuration file for segments", default=None)
-    parser.add_argument("--log", help="Path to save log files", default=None)
+    parser = argparse.ArgumentParser(
+        description="Converts a DICOM RTSTRUCT file and the associated DICOM series into a DICOM Segmentation Object (DICOM SEG).\n"
+                    "The script reads the contours defined in the RTSTRUCT, rasterizes them onto the reference DICOM series, \n"
+                    "and creates a new DICOM SEG file.",
+        epilog="""Example usage:
+  python rtstruct2dcmseg.py /path/to/dicom_series /path/to/file.rtstruct /path/to/output/segmentation.seg.dcm --config /path/to/config.yaml --log /path/to/logs
+
+Additional information:
+- Ensure that the reference DICOM series is complete and accessible.
+- The YAML configuration file (optional) allows customization of segment properties 
+  (category, type, color). If not provided, default values will be used.
+- Logs are written to both the console and to files (in the directory specified by --log or in ./logs).
+""",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument("dicom_series_path", 
+                        help="Path to the directory containing the reference DICOM series.")
+    parser.add_argument("rtstruct_path", 
+                        help="Path to the RTSTRUCT (.dcm) file to be converted.")
+    parser.add_argument("output_seg_path", 
+                        help="Full path of the DICOM SEG file to be generated (e.g., /output/segmentation.seg.dcm).")
+    parser.add_argument("--config", 
+                        help="Path to the YAML configuration file for segment properties (optional).", 
+                        default=None)
+    parser.add_argument("--log", 
+                        help="Path to the directory where log files will be saved (optional, default: ./logs).", 
+                        default=None)
     
     args = parser.parse_args()
     
     converter = DicomSegmentationConverter(
-        dicom_series_path=args.dicom_series_path,
-        rtstruct_path=args.rtstruct_path,
-        output_seg_path=args.output_seg_path,
-        config_path=args.config,
-        log_path=args.log
+            dicom_series_path=args.dicom_series_path,
+            rtstruct_path=args.rtstruct_path,
+            output_seg_path=args.output_seg_path,
+            config_path=args.config,
+            log_path=args.log
     )
-    
-    converter.convert()
-    print(f"Conversion completed successfully. Output saved to {args.output_seg_path}")
+    try : 
+        converter.convert()
+        print(f"Conversion completed successfully. Output saved to {args.output_seg_path}")
     except Exception as e:
-        logger.error(f"Errore durante la conversione: {str(e)}")
+        print(f"An error occurred during conversion: {str(e)}")
         raise
+    
+    
+    
