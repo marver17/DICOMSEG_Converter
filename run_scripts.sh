@@ -2,7 +2,7 @@
 
 function rtstruct2seg() {
     if [[ "$1" == "--help" || "$1" == "-h" || "$#" -lt 3 ]]; then
-    conda run -n rtstruct python /usr/rtstruct/rtstruct2dcmseg.py --help
+    conda run -n rtstruct rtstruct2dcmseg.py --help
         if [[ "$1" != "--help" && "$1" != "-h" && "$#" -lt 3 ]]; then
             echo "Errore: mancano argomenti obbligatori." >&2
             return 1
@@ -13,11 +13,11 @@ function rtstruct2seg() {
     local dicom_series_path="$1"
     local rtstruct_path="$2"
     local output_seg_path="$3"
-    shift 3 # Rimuove i primi 3 argomenti, lasciando gli opzionali per lo script python
+    shift 3 
 
-    echo "Esecuzione di rtstruct2dcmseg.py..."
-    conda run -n rtstruct python /usr/rtstruct/rtstruct2dcmseg.py "$dicom_series_path" "$rtstruct_path" "$output_seg_path" "$@"
-    echo "Esecuzione di rtstruct2dcmseg.py terminata."
+    echo "Esecution of rtstruct2dcmseg..."
+    conda run -n rtstruct rtstruct2dcmseg.py "$dicom_series_path" "$rtstruct_path" "$output_seg_path" "$@"
+    echo "Finished execution of rtstruct2dcmseg."
 }
 
 
@@ -237,7 +237,7 @@ function itkimage() {
 
 function dicom2nifti() {
     if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-        python /usr/dcmqi/bin/dcm2nifti.py --help
+        python dcm2nifti --help
         return
     fi
 
@@ -247,14 +247,14 @@ function dicom2nifti() {
     local reorient=False
 
     echo "Converting DICOM to NIfTI..."
-    python /usr/dcmqi/bin/dcm2nifti.py -path_input "$input_path" -path_output "$output_path" 
+    dcm2nifti.py -path_input "$input_path" -path_output "$output_path" 
     echo "Conversion finished"
 }
 
 function dicomseg2nifti() {
     # Verifica se l'opzione --help o -h è stata passata come argomento
     if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-        dcmseg2nifti.py --help
+        conda run -n dicomseg dcmseg2nifti.py --help
         return
     fi
 
@@ -262,7 +262,7 @@ function dicomseg2nifti() {
     local save_data_dir="$2"
     local reorientation="${3:-False}"  # Impostiamo un valore predefinito se non viene fornito alcun valore
 
-    dcmseg2nifti.py --path_data "$path_input" --save_data_dir "$save_data_dir" --orientation "$reorientation"
+    conda run -n dicomseg dcmseg2nifti.py --path_data "$path_input" --save_data_dir "$save_data_dir" --orientation "$reorientation"
 }
 
 function main() {

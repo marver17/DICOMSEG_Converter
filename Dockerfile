@@ -3,7 +3,7 @@ FROM ubuntu:22.04
 
 LABEL name="DicomSegConverter"
 LABEL version="1.3"
-LABEL authorization="This Dockerfile is intended to build a container image that will be publicly accessible in the platform images repository."
+LABEL authorization="Apache 2.0"
 
 RUN apt-get update \
     && apt-get install -y build-essential \
@@ -28,7 +28,7 @@ ENV PATH="${PATH}:/usr/dicomconverter/nifti/"
 ENV PATH="${PATH}:/usr/dicomconverter/nifti/dcmqi-function/bin"
 ENV PATH="${PATH}:/usr/dicomconverter/nifti/dicoseg2nifti"
 ENV PATH="${PATH}:/usr/dicomconverter/rtstruct"
-
-ENTRYPOINT ["dicomsegconv.sh"]
+ENV PATH="${PATH}:/usr/dicomconverter/nifti/dicoseg2nifti"
+ENTRYPOINT ["run_scripts"]
 
 
