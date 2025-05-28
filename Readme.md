@@ -173,4 +173,4 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
 
 ## License
 
-*(Specify your project's license here, e.g., MIT, Apache 2.0, etc. If not specified, it's proprietary by default.)*
+Apache 2.0
