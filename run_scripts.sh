@@ -297,12 +297,11 @@ function main() {
                          Uses 'segimage2itkimage' from dcmqi.
                Authors of dcmqi: Andrey Fedorov (BWH), Christian Herz (BWH)
                dcmqi group: https://github.com/QIICR/dcmqi
-
             3. itkimage2: Converts DICOM SEG files to NIfTI format.
-                          Uses the 'dcmseg2nifti.py' script.
+                          Uses the 'dcmseg2nifti.py' script. It is custom function, use it if you have problem of orientation using the dcmqi function.
             4. dicom2nifti: Converts a DICOM series to NIfTI format.
                             Uses the 'dcm2nifti.py' script (based on dicom2nifti).
-            5. rtstruct2seg: Converts an RTSTRUCT file and the associated DICOM series into a DICOM Segmentation file.
+            5. rtstruct2seg: Converts an RTSTRUCT file into a DICOM Segmentation file.
                              Uses the rtstruct2dcmseg.py' script.
 
             For detailed information on the use of each function, run:

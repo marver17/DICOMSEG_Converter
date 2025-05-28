@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 import os
 import pydicom
 import numpy as np
@@ -53,13 +52,13 @@ class DicomSegmentationConverter:
             
     def _setup_logging(self, log_path: Optional[str] = None) -> logging.Logger:
         """
-        Configura il sistema di logging
+        Configures the logging system.
         
         Args:
-            log_path: Percorso dove salvare il file di log. Se None, usa la directory corrente
+            log_path: Path to save the log file. If None, uses the current directory.
         
         Returns:
-            Logger configurato
+            Configured logger.
         """
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
@@ -88,10 +87,10 @@ class DicomSegmentationConverter:
 
     def load_segment_config(self, config_path: str) -> None:
         """
-        Carica la configurazione dei segmenti da un file YAML
+        Loads segment configuration from a YAML file.
         
         Args:
-            config_path: Percorso del file di configurazione YAML
+            config_path: Path to the YAML configuration file.
         """
         self.logger.info(f"Loading configuration File")
         if not Path(config_path).exists():
@@ -105,7 +104,7 @@ class DicomSegmentationConverter:
             self.segment_configs = yaml.safe_load(f)['segments']
             
     def read_dicom_series(self):
-        """Legge la serie DICOM usando SimpleITK"""
+        """Reads the DICOM series using SimpleITK."""
         
         self.logger.info("Starting DICOM series reading")
         reader = sitk.ImageSeriesReader()
@@ -122,7 +121,7 @@ class DicomSegmentationConverter:
         return self
 
     def extract_roi_masks(self):
-        """Estrae le maschere ROI dal RTSTRUCT"""
+        """Extracts ROI masks from the RTSTRUCT."""
         self.logger.info("Starting ROI mask extraction from RTSTRUCT")
         ds_rt = pydicom.dcmread(self.rtstruct_path)
         size = self.sitk_image.GetSize()
@@ -152,7 +151,7 @@ class DicomSegmentationConverter:
         return self
 
     def _process_roi_contours(self, roi_item, roi_name, depth, height, width):
-        """Processa i contorni di una singola ROI"""
+        """Processes the contours of a single ROI."""
         self.logger.info(f"Processing contours for ROI: {roi_name}")
         mask = np.zeros((depth, height, width), dtype=np.uint8)
         
@@ -173,7 +172,7 @@ class DicomSegmentationConverter:
 
 
     def _rasterize_contour(self, contour, mask, height, width):
-        """Rasterizza un singolo contorno"""
+        """Rasterizes a single contour."""
         self.logger.debug("Starting contour rasterization")
         try:
             data = np.array(contour.ContourData).reshape(-1, 3)
@@ -193,7 +192,7 @@ class DicomSegmentationConverter:
             raise
 
     def create_dicom_seg(self):
-        """Crea il DICOM SEG finale"""
+        """Creates the final DICOM SEG."""
         self.logger.info("Starting DICOM-SEG creation")
         
         if not self.roi_masks:
@@ -222,7 +221,7 @@ class DicomSegmentationConverter:
         return self
 
     def _create_segment_descriptions(self, roi_names):
-        """Crea le descrizioni dei segmenti usando la configurazione se disponibile"""
+        """Creates segment descriptions using configuration if available."""
         self.logger.info("Creating segment descriptions")
         descriptions = []
         
@@ -281,7 +280,7 @@ class DicomSegmentationConverter:
     
     
     def _add_missing_dicom_fields(self, dicom_datasets):
-        """Aggiunge campi DICOM mancanti se necessario"""
+        """Adds missing DICOM fields if necessary."""
         self.logger.info("Checking for missing DICOM fields")
         required_fields = [
             'StudyInstanceUID', 'SeriesInstanceUID', 'SOPInstanceUID',
@@ -317,7 +316,7 @@ class DicomSegmentationConverter:
                         ds.AccessionNumber = "1"
 
     def _create_segmentation_dataset(self, seg_array, segment_descriptions, dicom_datasets):
-        """Crea il dataset di segmentazione"""
+        """Creates the segmentation dataset."""
         self.logger.info("Creating segmentation dataset")
         self.logger.debug(f"Segmentation array shape: {seg_array.shape}")
         self.logger.debug(f"Number of segment descriptions: {len(segment_descriptions)}")
@@ -347,10 +346,10 @@ class DicomSegmentationConverter:
             
         except Exception as e:
             self.logger.error(f"Error creating segmentation dataset: {str(e)}")
-            raise
-
+            raise    
+    
     def convert(self):
-        """Metodo principale per eseguire l'intera conversione"""
+        """Main method to perform the entire conversion."""
         return (self
                 .read_dicom_series()
                 .extract_roi_masks()
@@ -404,6 +403,3 @@ Additional information:
     except Exception as e:
         print(f"An error occurred during conversion: {str(e)}")
         raise
-    
-    
-    

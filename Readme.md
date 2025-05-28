@@ -1,185 +1,176 @@
-# DicomSeg Conversion 
+# DicomConverter Utilities
 
-This container performs a conversion from the volumetric segmentation(s) stored as labelled pixels one of the formats supported by ITK to DICOM Segmentation Object (dicomseg) and vice versa. Based on the work of the dcmqi group.
-ITK formats are: NRRD, NIfTI, MHD, etc. 
-## Conversion Pipeline 
+## Overview
+This repository provides tools for segmentation files conversion in DicomSEG, with a primary focus on:
+1.  **DICOM RTSTRUCT to DICOM SEG:** A Python script (`rtstruct/rtstruct2dcmseg.py`) converts DICOM Radiotherapy Structure Set (RTSTRUCT) files, along with their referenced DICOM image series, into DICOM Segmentation (SEG) objects. It can also optionally convert the individual Regions of Interest (ROIs) defined in the RTSTRUCT into separate NIfTI (.nii.gz) files.
+2.  **Nifti Conversions via dcmqi and Custom Scripts:** The Docker image built from this repository also includes command-line tools from dcmqi (DICOM Quantitative Imaging Toolkit) and custom Python scripts for various conversions, such as:
+    *   ITK image formats (NIfTI, NRRD) to/from DICOM SEG.
+    *   DICOM series to NIfTI.
+    *   DICOM SEG to NIfTI (custom alternative).
 
-For the conversion to dicomseg three inputs are needed : 
-1.  DICOM files of the images 
-2.  ITK files with the volumentric segmentation(s)
-3.  Json file with extra metadata that will be encode inside dicomseg
+All functionalities are conveniently wrapped and accessible via the `run_scripts.sh` command within the Docker container.
 
-A useful tool To generate a JSON files for the dicom SEG converter http://qiicr.org/dcmqi/#/seg.
+## Core Functionalities (via `run_scripts.sh` in Docker)
 
-## How does it work ?
+This Python script leverages `pydicom`, `SimpleITK`, and `highdicom` for its operations.
 
-There are three possibilities : 
+### Features
 
-1. From itk image to dicomseg
+*   Converts DICOM RTSTRUCT and its associated DICOM image series to a DICOM SEG file.
+*   Optionally exports each ROI from the RTSTRUCT as an individual NIfTI file, spatially aligned with the reference DICOM series.
+*   Allows customization of DICOM SEG segment properties (e.g., category, type) through an external YAML configuration file.
+*   Provides detailed logging of the conversion process.
+*   Can be run as a standalone Python script or via the provided Docker container.
+*
+### How it Works
 
-        docker run  mariov687/dicomseg:latest dicomseg
-    
-2. From itk image to dicomseg
+1.  **Read DICOM Series:** The reference DICOM image series is read using SimpleITK to obtain image data and spatial information.
+2.  **Read RTSTRUCT:** The DICOM RTSTRUCT file is parsed using `pydicom` to extract ROI names and contour data.
+3.  **Rasterize Contours:** For each ROI, its 2D contours are rasterized onto a 3D mask volume corresponding to the reference DICOM series.
+4.  **Create DICOM SEG:** The rasterized 3D masks are compiled into a DICOM SEG object using `highdicom`.
+5.  **(Optional) Create NIfTI Files:** If an output directory for NIfTI files is specified, each 3D ROI mask is saved as a NIfTI (.nii.gz) file.
+    *(Note: Direct NIfTI output from `rtstruct2dcmseg.py` might require calling a specific method like `create_nift_seg` if not integrated into the main `convert` flow or CLI arguments. The `run_scripts.sh rtstruct2seg` wrapper primarily focuses on DICOM SEG output based on the script's main CLI.)*
 
-        docker run  mariov687/dicomseg:latest itkimage
+## Docker Usage
 
-3. Dicom Files to nifti files
-    docker run  mariov687/dicomseg:latest dicom2nifti
+The recommended way to use these tools is via the provided Docker container.
 
-To retrieve help about the container we can do :
-    
-    docker run -v mariov687/dicomseg:latest information
+### 1. Build the Docker Image
 
-### How to share images with container
+Navigate to the root directory of this repository (where the `Dockerfile` is located) and run:
+   ```bash
+   docker build -t dicomsegconverter .
+   ```
 
-Docker containers cannot directly access the host filesystem. To pass files to the dcmqi converter and access output files , use the -v argument to specify directories for file exchange.
+**2. Run the Conversion using Docker:**
+   Mount host directories for inputs (DICOM series, RTSTRUCT, config) and outputs (DICOM SEG, NIfTI, logs).
 
-    -v HOST_DIR:CONTAINER_DIR
+   ```bash
+   docker run --rm \
+       -v /path/to/your/dicom_series_folder:/data/dicom_series \
+       -v /path/to/your/rtstruct_file.dcm:/data/rtstruct.dcm \
+       -v /path/to/your/output_folder:/data/output \
+       # -v /path/to/your/optional_config.yaml:/data/config.yaml \  # Optional config file
+       dicomsegconverter \
+       python /usr/dicomconverter/rtstruct/rtstruct2dcmseg.py \
+           /data/dicom_series \
+           /data/rtstruct.dcm \
+           /data/output/segmentation.seg.dcm \
+           # --config /data/config.yaml \  # Optional
+           --log /data/output/logs \
+           # --output_nifti_dir /data/output/nifti_files # Optional: for NIfTI output (see note below)
+   ```
+   *Replace `/path/to/your/...` with actual paths on your host machine.*
 
-### How to dicomseg conversion works
+#### Running the Python Script Locally
 
-The dicomseg conversion use the itkimage2segimage of the dcmqi group. 
+**1. Install Dependencies (if not already done):**
+   ```bash
+   pip install pydicom numpy SimpleITK scikit-image highdicom PyYAML shapely
+   ```
+   *(Or use `pip install -r requirements.txt` if you create one.)*
 
-These are the arguments of the function : 
+**2. Run the Script:**
+   ```bash
+   python /path/to/rtstruct2dcmseg.py \
+       /path/to/dicom_series_folder \
+       /path/to/rtstruct_file.dcm \
+       /path/to/output/segmentation.seg.dcm \
+       # --config /path/to/optional_config.yaml \
+       --log /path/to/output/logs \
+       # --output_nifti_dir /path/to/output/nifti_files # Optional: for NIfTI output (see note below)
+   ```
 
-    --returnparameterfile <std::string>
-        Filename in which to write simple return parameters (int, float,
-        int-vector, etc.) as opposed to bulk return parameters (image,
-        geometry, transform, measurement, table).
+### Command-line Arguments for `rtstruct2dcmseg.py`
 
-    --processinformationaddress <std::string>
-        Address of a structure to store process information (progress, abort,
-        etc.). (default: 0)
+*   `dicom_series_path`: (Positional) Path to the directory containing the reference DICOM image series.
+*   `rtstruct_path`: (Positional) Path to the input DICOM RTSTRUCT (.dcm) file.
+*   `output_seg_path`: (Positional) Full path for the output DICOM SEG file (e.g., `/output/segmentation.seg.dcm`).
+*   `--config <path>`: (Optional) Path to a YAML configuration file for customizing segment properties.
+*   `--log <directory_path>`: (Optional) Path to the directory where log files will be saved. Defaults to `./logs` in the script's current working directory if run locally, or relative to the container's CWD.
+*   `--output_nifti_dir <directory_path>`: (Optional) Path to the directory where NIfTI files for each ROI will be saved.
+    *   **Note:** As of the last review of `rtstruct2dcmseg.py`, this command-line argument might not be implemented in the `argparse` section. If you need this functionality via CLI, ensure the script is updated to include and handle this argument, then call the `create_nift_seg` method.
 
-    --xml
-        Produce xml description of command line arguments (default: 0)
+### Configuration File for `rtstruct2dcmseg.py`
 
-        --echo
-        Echo the command line arguments (default: 0)
+Customize DICOM SEG segment properties using a YAML file. ROI names in the config are matched case-insensitively against those in the RTSTRUCT.
 
-    --verbose
-        Display more verbose output, useful for troubleshooting. (default: 0)
+**Example `config.yaml`:**
+```yaml
+segments:
+  ROI_NAME_1_IN_RTSTRUCT: # Use the exact ROI name from your RTSTRUCT
+    category:
+      code: "T-D0050"      # SNOMED CT Code for 'Tissue'
+      scheme: "SRT"
+      meaning: "Tissue"
+    type:
+      code: "M-80003"      # SNOMED CT Code for 'Neoplasm, Malignant'
+      scheme: "SRT"
+      meaning: "Malignant Neoplasm"
+    # color: [255, 0, 0] # RGB color - Note: highdicom's SegmentDescription doesn't directly take this.
+                         # The script uses a default color list.
 
-    --useLabelIDAsSegmentNumber
-        Use label IDs from ITK images as Segment Numbers in DICOM. Only works
-        if label IDs are consecutively numbered starting from 1, otherwise
-        conversion will fail. (default: 0)
+  ANOTHER_ROI_NAME:
+    category:
+      code: "T-62000"      # Example: 'Kidney'
+      scheme: "SRT"
+      meaning: "Kidney"
+    type:
+      code: "RID6041"      # Example: 'Organ' from RadLex
+      scheme: "RADLEX"
+      meaning: "Organ"
+```
 
-    --skip
-        Skip empty slices while encoding segmentation image. By default, empty
-        slices will not be encoded, resulting in a smaller output file size.
-        (default: 0)
+If an ROI is not in the config, or properties are missing, defaults are used:
+*   **Default Category:** Tissue (SRT: T-D0050)
+*   **Default Type:** Tumor (SRT: M-03000)
 
-    --inputImageList <std::vector<std::string>>
-        Comma-separated list of file names of the segmentation images in a
-        format readable by ITK (NRRD, NIfTI, MHD, etc.). Each of the
-        individual files can contain one or more labels (segments). Segments
-        from different files are allowed to overlap. See documentation for
-        details.
+---
 
-    --inputDICOMDirectory <std::string>
-        Directory with the DICOM files corresponding to the original image
-        that was segmented.
+## 2. Additional dcmqi Utilities (in Docker Environment)
 
-    --inputDICOMList <std::vector<std::string>>
-        Comma-separated list of DICOM images that correspond to the original
-        image that was segmented. This means you must have access to the
-        original data in DICOM in order to use the converter (at least for
-        now).
-    --outputDICOM <std::string>
-        File name of the DICOM SEG object that will store the result of
-        conversion.
+The Docker image (`dicomsegconverter`) also includes command-line tools from the dcmqi (DICOM Quantitative Imaging Toolkit) library, made available through the Conda environment specified in the `Dockerfile`. These tools support other types of conversions:
 
-    --inputMetadata <std::string>
-        JSON file containing the meta-information that describes the
-        measurements to be encoded. See documentation for details.
+*   **ITK image formats (NIfTI, NRRD, etc.) to DICOM SEG:** Typically using `itkimage2image`.
+*   **DICOM SEG to ITK image formats:** Typically using `segimage2itkimage`.
+*   **DICOM series to NIfTI:** Often handled by tools like `dcm2niix` (which might be part of the dcmqi ecosystem or a related dependency) or a Python script wrapper.
 
-    --,  --ignore_rest
-        Ignores the rest of the labeled arguments following this flag.
+The `Dockerfile` adds `/usr/dicomconverter/nifti/dcmqi-function/bin` and `/usr/dicomconverter/nifti/dicoseg2nifti` to the `PATH`, suggesting these tools or wrappers are available. The `run_scripts.sh` file copied into the Docker image might also provide convenient aliases or entrypoints for these.
 
-    --version
-        Displays version information and exits.
+### Example Usage (for dcmqi tools via Docker)
 
-    -h,  --help
-        Displays usage information and exits.
+These examples are illustrative and assume scripts/aliases like `dicomseg`, `itkimage`, `dicom2nifti` are available in the Docker image's PATH (as suggested by the previous `Readme.md` for a similar image and the current Dockerfile setup). You might need to invoke the specific `dcmqi` executables directly (e.g., `itkimage2image`, `segimage2itkimage`). **Refer to the official `dcmqi` documentation for precise command-line arguments and tool names.**
 
-### How to itkimage conversion works
+1.  **ITK image to DICOM SEG (Example using a hypothetical `dicomseg` script/alias):**
+    ```bash
+    docker run --rm -v /your/data_folder:/data dicomsegconverter \
+        dicomseg --inputImageList /data/itkfile.nii.gz \
+                 --inputMetadata /data/metadata.json \
+                 --inputDICOMDirectory /data/DICOM_series_folder \
+                 --outputDICOM /data/output_dicomseg.dcm
+    ```
 
-The itkimage conversion use the segimage2itkimage of the dcmqi group. 
+2.  **DICOM SEG to ITK image (Example using a hypothetical `itkimage` script/alias):**
+    ```bash
+    docker run --rm -v /your/data_folder:/data dicomsegconverter \
+        itkimage --inputDICOM /data/input_dicomseg.dcm \
+                 -p output_itkfile -t nifti \
+                 --outputDirectory /data/itk_output_folder
+    ```
 
-These are the arguments of the function : 
+3.  **DICOM series to NIfTI (Example using a hypothetical `dicom2nifti` script/alias):**
+    ```bash
+    docker run --rm -v /your/data_folder:/data dicomsegconverter \
+        dicom2nifti /data/DICOM_series_folder /data/nifti_output_folder
+    ```
 
-    --returnparameterfile <std::string>
-        Filename in which to write simple return parameters (int, float,
-        int-vector, etc.) as opposed to bulk return parameters (image,
-        geometry, transform, measurement, table).
-
-    --processinformationaddress <std::string>
-        Address of a structure to store process information (progress, abort,
-        etc.). (default: 0)
-
-    --xml
-        Produce xml description of command line arguments (default: 0)
-
-    --echo
-        Echo the command line arguments (default: 0)
-
-    --mergeSegments
-        Save all segments into a single file. When segments are
-        non-overlapping, output is a single 3D file. If overlapping, single 4D
-        following conventions of 3D Slicer segmentations format. Only
-        supported when the output is NRRD for now. (default: 0)
-
-    --verbose
-        Display more verbose output, useful for troubleshooting. (default: 0)
-
-    -t <nrrd|mhd|mha|nii|nifti|hdr|img>,  --outputType <nrrd|mhd|mha|nii
-        |nifti|hdr|img>
-        Output file format for the resulting image data. (default: nrrd)
-
-    -p <std::string>,  --prefix <std::string>
-        Prefix for output file.
-
-    --outputDirectory <std::string>
-        Directory to store individual segments saved using the output format
-        specified files. When specified, file names will contain prefix,
-        followed by the segment number.
-
-    --inputDICOM <std::string>
-        File name of the input DICOM Segmentation image object.
-
-    --,  --ignore_rest
-        Ignores the rest of the labeled arguments following this flag.
-
-    --version
-        Displays version information and exits.
-
-    -h,  --help
-        Displays usage information and exits.
+---
 
 
-### How to dicom to nifti conversion works 
+## Contributing
 
-The conversion in nifti from dicom files use a python library dicom2nifti 
+Contributions are welcome! Please feel free to submit pull requests or open issues.
 
-These are the arguments of the function : 
-   
-    <input_path>: Path to the input DICOM files.
-    <output_path>: Path to save the output NIfTI files.
-    -h, --help: Show this help message.
+## License
 
-## Example
-
-These are two examples, one for each modality :
-
-1. From itk file  to dicomseg file 
-        
-        docker run -v DicomsegTest:/tmp mariov687/dicomseg:latest dicomseg --inputImageList /tmp/itkfile.nii.gz --inputMetadata /tmp/metadata.json --inputDICOMDirectory /tmp/DICOM --outputDICOM /tmp/dicomsegfile.dcm`
-
-2. From dicomseg file to itk file
-
-        docker run  -v DicomsegTest:/tmp  mariov687/dicomseg:latest itkimage  --inputDICOM /tmp/dicomsegfile.dcm -p itkfile -t nifti --       outputDirectory /tmp
-
-3. From dicom2nifti 
-
-        docker run  -v DicomsegTest:/tmp  mariov687/dicomseg:latest dicom2nifiti   /tmp/dicomfolder  /tmp/niftifolder
+*(Specify your project's license here, e.g., MIT, Apache 2.0, etc. If not specified, it's proprietary by default.)*

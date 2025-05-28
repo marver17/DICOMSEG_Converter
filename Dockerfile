@@ -5,8 +5,6 @@ LABEL name="DicomSegConverter"
 LABEL version="1.3"
 LABEL authorization="This Dockerfile is intended to build a container image that will be publicly accessible in the platform images repository."
 
-
-COPY  dcmqi-function /usr/dcmqi
 RUN apt-get update \
     && apt-get install -y build-essential \
    && apt-get install -y wget \
@@ -14,24 +12,23 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 ENV CONDA_DIR=/opt/conda
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p /opt/conda
+    /bin/bash ~/miniconda.sh -b -p /opt/conda && \
+    rm ~/miniconda.sh 
 ENV PATH=$CONDA_DIR/bin:$PATH
-COPY ENV.yml ENV.yml
-RUN conda env create -n dicomseg --file ENV.yml
+COPY nifti /usr/dicomconverter/nifti
+COPY rtstruct /usr/dicomconverter/rtstruct
+RUN conda env create -n dicomseg --file /usr/dicomconverter/nifti/ENV.yml
 RUN echo "source activate dicomseg" > ~/.bashrc
 ENV BASH_ENV=~/.bashrc
-ENV ENV_NAME=dicomseg
-COPY dicomsegconv_2.sh /usr/dcmqi/bin/dicomsegconv.sh
-COPY dicom_conversion.py /usr/dcmqi/bin/dcm2nifti.py
-COPY algorithm_name_correction.py /usr/dcmqi/bin/algorithm_name_correction.py
-COPY rtstruct /usr/rtstruct
-ENV PATH="${PATH}:/usr/rtstruct"
-RUN chmod +x /usr/rtstruct/install_enviorment.sh
-RUN /usr/rtstruct/install_enviorment.sh
-COPY run_script.sh /usr/rtstruct/run_script
-RUN chmod +x /usr/rtstruct/run_script
-COPY dicoseg2nifti /usr/dicomseg2nifti
-ENV PATH="${PATH}:/usr/dcmqi/bin"
-ENV PATH="${PATH}:/usr/dicomseg2nifti"
+RUN chmod +x /usr/dicomconverter/rtstruct/install_enviorment.sh
+RUN /usr/dicomconverter/rtstruct/install_enviorment.sh
+COPY run_scripts.sh /usr/dicomconverter/run_scripts
+ENV PATH="${PATH}:/usr/dicomconverter/"
+ENV PATH="${PATH}:/usr/dicomconverter/nifti/"
+ENV PATH="${PATH}:/usr/dicomconverter/nifti/dcmqi-function/bin"
+ENV PATH="${PATH}:/usr/dicomconverter/nifti/dicoseg2nifti"
+ENV PATH="${PATH}:/usr/dicomconverter/rtstruct"
 
 ENTRYPOINT ["dicomsegconv.sh"]
+
+
