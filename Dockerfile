@@ -35,6 +35,9 @@ RUN groupadd -g 1000 ds && \
 # Default password "password" for ds user. 
 RUN echo "ds:password" | chpasswd
 USER ds:ds
+RUN mkdir -p /home/ds/datasets && \
+    mkdir -p /home/ds/persistent-home && \
+    mkdir -p /home/ds/persistent-shared-folder
 
 ENTRYPOINT ["run_scripts"]
 
