@@ -29,6 +29,13 @@ ENV PATH="${PATH}:/usr/dicomconverter/nifti/dcmqi-function/bin"
 ENV PATH="${PATH}:/usr/dicomconverter/nifti/dicoseg2nifti"
 ENV PATH="${PATH}:/usr/dicomconverter/rtstruct"
 ENV PATH="${PATH}:/usr/dicomconverter/nifti/dicoseg2nifti"
+# create the user (and group) "ds"
+RUN groupadd -g 1000 ds && \
+    useradd --create-home --shell /bin/bash --uid 1000 --gid 1000 ds
+# Default password "password" for ds user. 
+RUN echo "ds:password" | chpasswd
+USER ds:ds
+
 ENTRYPOINT ["run_scripts"]
 
 
