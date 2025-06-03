@@ -28,8 +28,6 @@ This Python script leverages `pydicom`, `SimpleITK`, and `highdicom` for its ope
 2.  **Read RTSTRUCT:** The DICOM RTSTRUCT file is parsed using `pydicom` to extract ROI names and contour data.
 3.  **Rasterize Contours:** For each ROI, its 2D contours are rasterized onto a 3D mask volume corresponding to the reference DICOM series.
 4.  **Create DICOM SEG:** The rasterized 3D masks are compiled into a DICOM SEG object using `highdicom`.
-5.  **(Optional) Create NIfTI Files:** If an output directory for NIfTI files is specified, each 3D ROI mask is saved as a NIfTI (.nii.gz) file.
-    *(Note: Direct NIfTI output from `rtstruct2dcmseg.py` might require calling a specific method like `create_nift_seg` if not integrated into the main `convert` flow or CLI arguments. The `run_scripts.sh rtstruct2seg` wrapper primarily focuses on DICOM SEG output based on the script's main CLI.)*
 
 ## Docker Usage
 
