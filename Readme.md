@@ -58,7 +58,6 @@ Navigate to the root directory of this repository (where the `Dockerfile` is loc
            /data/output/segmentation.seg.dcm \
            # --config /data/config.yaml \  # Optional
            --log /data/output/logs \
-           # --output_nifti_dir /data/output/nifti_files # Optional: for NIfTI output (see note below)
    ```
    *Replace `/path/to/your/...` with actual paths on your host machine.*
 
