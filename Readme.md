@@ -49,7 +49,7 @@ Navigate to the root directory of this repository (where the `Dockerfile` is loc
        -v /path/to/your/rtstruct_file.dcm:/data/rtstruct.dcm \
        -v /path/to/your/output_folder:/data/output \
        # -v /path/to/your/optional_config.yaml:/data/config.yaml \  # Optional config file
-       dicomsegconverter \
+       rtstruct2seg\
        python /usr/dicomconverter/rtstruct/rtstruct2dcmseg.py \
            /data/dicom_series \
            /data/rtstruct.dcm \
