@@ -17,19 +17,21 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86
 ENV PATH=$CONDA_DIR/bin:$PATH
 COPY nifti /usr/dicomconverter/nifti
 COPY rtstruct /usr/dicomconverter/rtstruct
+RUN conda tos accept --override-channels --channel defaults
 RUN conda env create -n dicomseg --file /usr/dicomconverter/nifti/ENV.yml
 RUN echo "source activate dicomseg" > ~/.bashrc
 ENV BASH_ENV=~/.bashrc
 RUN chmod +x /usr/dicomconverter/rtstruct/install_enviorment.sh
 RUN /usr/dicomconverter/rtstruct/install_enviorment.sh
 COPY run_scripts.sh /usr/dicomconverter/run_scripts
+RUN chmod +x /usr/dicomconverter/run_scripts
 ENV PATH="${PATH}:/usr/dicomconverter/"
 ENV PATH="${PATH}:/usr/dicomconverter/nifti/"
 ENV PATH="${PATH}:/usr/dicomconverter/nifti/dcmqi-function/bin"
 ENV PATH="${PATH}:/usr/dicomconverter/nifti/dicoseg2nifti"
 ENV PATH="${PATH}:/usr/dicomconverter/rtstruct"
 ENV PATH="${PATH}:/usr/dicomconverter/nifti/dicoseg2nifti"
-# create the user (and group) "ds"
+# # create the user (and group) "ds"
 RUN groupadd -g 1000 ds && \
     useradd --create-home --shell /bin/bash --uid 1000 --gid 1000 ds
 # Default password "password" for ds user. 
