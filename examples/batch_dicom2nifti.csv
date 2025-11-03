@@ -1,0 +1,4 @@
+id,input,output
+nifti_001,/data/dicom/patient001,/data/nifti/patient001.nii.gz
+nifti_002,/data/dicom/patient002,/data/nifti/patient002.nii.gz
+nifti_003,/data/dicom/patient003,/data/nifti/patient003.nii.gz

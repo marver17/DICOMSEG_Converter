@@ -1,0 +1,2 @@
+id,input1,input2,output
+test_batch_1,/data/RT-STRUCT/DCM/ID_1,/data/RT-STRUCT/1-1.dcm,/output/batch_test1.dcm

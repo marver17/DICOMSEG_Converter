@@ -1,0 +1,9 @@
+# Requirements for image validation and resampling tools
+# Install with: pip install -r validation_requirements.txt
+
+# Core dependencies
+SimpleITK>=2.2.0
+numpy>=1.21.0
+
+# Optional but recommended
+scipy>=1.7.0  # For advanced resampling algorithms

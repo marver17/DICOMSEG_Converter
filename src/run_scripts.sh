@@ -282,6 +282,11 @@ function main() {
         rtstruct2seg)
             rtstruct2seg "${@:2}"
             ;;
+        
+        batch)
+            # Call csv_batch.py helper for batch processing
+            python3 /usr/dicomconverter/src/csv_batch.py "${@:2}"
+            ;;
 
         information)
             echo "Available functions:
@@ -290,6 +295,7 @@ function main() {
                 3. itkimage2
                 4. dicom2nifti
                 5. rtstruct
+                6. batch
 
             1. dicomseg: Converts volumetric segmentations (from ITK-supported formats) into DICOM Segmentation objects (dicomseg).
                          Uses 'itkimage2segimage' from dcmqi.
@@ -303,6 +309,9 @@ function main() {
                             Uses the 'dcm2nifti.py' script (based on dicom2nifti).
             5. rtstruct2seg: Converts an RTSTRUCT file into a DICOM Segmentation file.
                              Uses the rtstruct2dcmseg.py' script.
+            6. batch: Executes conversions on a batch of files listed in a CSV file.
+                      Supports all conversion modes with parallel processing, dry-run, and logging.
+                      Uses the 'csv_batch.py' helper script.
 
             For detailed information on the use of each function, run:
                 $0 <function_name> --help|-h
@@ -311,7 +320,7 @@ function main() {
             "
             ;;
         *)
-            echo "Usage: $0 {dicomseg|itkimage|itkimage2|dicom2nifti|rtstruct2seg|information} [options]"
+            echo "Usage: $0 {dicomseg|itkimage|itkimage2|dicom2nifti|rtstruct2seg|batch|information} [options]"
             exit 1
             ;;
     esac

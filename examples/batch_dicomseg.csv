@@ -1,0 +1,4 @@
+id,inputImageList,inputDICOMDirectory,outputDICOM,inputMetadata
+seg_001,/data/seg/patient001.nii.gz,/data/dicom/patient001,/data/output/patient001_seg.dcm,/data/metadata/patient001.json
+seg_002,/data/seg/patient002.nii.gz,/data/dicom/patient002,/data/output/patient002_seg.dcm,/data/metadata/patient002.json
+seg_003,/data/seg/patient003.nii.gz,/data/dicom/patient003,/data/output/patient003_seg.dcm,/data/metadata/patient003.json

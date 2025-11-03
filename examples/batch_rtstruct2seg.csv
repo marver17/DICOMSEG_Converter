@@ -1,0 +1,4 @@
+id,input1,input2,output
+patient_001,/data/patient001/CT,/data/patient001/RT/structures.dcm,/data/output/patient001_seg.dcm
+patient_002,/data/patient002/CT,/data/patient002/RT/structures.dcm,/data/output/patient002_seg.dcm
+patient_003,/data/patient003/CT,/data/patient003/RT/structures.dcm,

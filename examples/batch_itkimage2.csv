@@ -1,0 +1,4 @@
+id,input,orientation,output
+seg2nii_001,/data/dicomseg/patient001.dcm,True,/data/nifti/patient001
+seg2nii_002,/data/dicomseg/patient002.dcm,False,/data/nifti/patient002
+seg2nii_003,/data/dicomseg/patient003.dcm,True,/data/nifti/patient003
