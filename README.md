@@ -239,10 +239,23 @@ DICOM SEG → NIfTI → DICOM SEG (with Dice ≥ 0.95 verification)
 ```
 
 **Round-trip process:**
+0. **Convert DICOM images to NIfTI** (for overlay visualization with segmentations)
 1. Extract segmentations from DICOM SEG to NIfTI (`itkimage -t nifti` command)
 2. Add missing metadata with `algorithm_name_correction.py`
 3. Re-convert NIfTI files to DICOM SEG (`dicomseg` command)
 4. Calculate Dice coefficient between original and re-converted DICOM SEG
+
+**Overlay visualization:**
+
+The round-trip process now includes conversion of the original DICOM images to NIfTI format. This allows you to:
+- Load both the image and segmentation NIfTI files in viewers like ITK-SNAP or 3D Slicer
+- Visually verify segmentation overlay on the original images
+- Compare original vs round-trip segmentations side-by-side
+
+**Example files generated:**
+- `ambl001_image.nii.gz` - Original DICOM images converted to NIfTI
+- `ambl001_step1/*.nii.gz` - Segmentation files from DICOM SEG
+- `ambl001_final/*.nii.gz` - Segmentation files after round-trip
 
 ### Geometric Validation
 

@@ -164,25 +164,33 @@ tests/
 │   │   │   └── *.nii.gz
 │   │   └── pathB/
 │   │       └── *.nii.gz
-│   └── TEST_11_roundtrip/             # Test 11 output
-│       ├── AMBL-001/
-│       │   ├── original_seg.dcm       # Original DICOM SEG
-│       │   ├── step1_nifti/           # Extracted NIfTI
-│       │   ├── step2_metadata/        # Corrected JSON
-│       │   ├── step3_reconverted/     # Re-converted DICOM SEG
-│       │   └── step4_validation/      # Dice report
-│       ├── AMBL-004/
-│       ├── LUNG1-001/
-│       └── interobs05/
+│   └── roundtrip/                     # Round-trip test output
+│       ├── ambl001_image.nii.gz       # Original DICOM images (for overlay)
+│       ├── ambl001_step1/             # Extracted segmentation NIfTI
+│       ├── ambl001_pathA/             # Original merged segmentation
+│       ├── ambl001_roundtrip.dcm      # Re-converted DICOM SEG
+│       ├── ambl001_final/             # Final extracted segmentation
+│       ├── ambl004_image.nii.gz       # AMBL-004 images
+│       ├── ambl004_step1/
+│       ├── lung1001_image.nii.gz      # LUNG1-001 images
+│       ├── lung1001_step1/
+│       ├── interobs05_image.nii.gz    # interobs05 images
+│       └── interobs05_step1/
 ```
 
 ## 🎯 Important Commands
 
 ### Manual Round-Trip
 
-To execute a complete manual round-trip:
+To execute a complete manual round-trip with image overlay:
 
 ```bash
+# Step 0: Convert original DICOM images to NIfTI (for overlay visualization)
+docker run --rm -v $(pwd)/DATA:/data dicomconverter:test-20251104 \
+    dicom2nifti \
+    -i /data/DCM/ID_1 \
+    -o /data/step0_image/image.nii.gz
+
 # Step 1: Extract NIfTI from DICOM SEG
 docker run --rm -v $(pwd)/DATA:/data dicomconverter:test-20251104 \
     itkimage -t nifti \
@@ -208,6 +216,8 @@ python3 roundtrip_validation.py \
     /data/seg.dcm \
     /data/step3_reconverted/1.dcm \
     --output-dir /data/step4_validation
+
+# Optional: Load image.nii.gz and segmentation NIfTI files in viewer for overlay
 ```
 
 ### Manual Cross-Validation

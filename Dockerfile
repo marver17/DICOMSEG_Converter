@@ -25,10 +25,11 @@ ENV BASH_ENV=~/.bashrc
 RUN chmod +x /usr/dicomconverter/src/rtstruct/install_enviorment.sh
 RUN /usr/dicomconverter/src/rtstruct/install_enviorment.sh
 # Install validation dependencies in dicomseg environment
-RUN conda run -n dicomseg pip install SimpleITK numpy scipy
+RUN conda run -n dicomseg pip install SimpleITK numpy scipy dicom2nifti
 # Make scripts executable
 RUN chmod +x /usr/dicomconverter/src/run_scripts.sh
 RUN chmod +x /usr/dicomconverter/src/csv_batch.py
+RUN chmod +x /usr/dicomconverter/src/dicomseries2nifti.py
 RUN chmod +x /usr/dicomconverter/src/image_validation.py
 RUN chmod +x /usr/dicomconverter/src/validation_wrapper.py
 RUN chmod +x /usr/dicomconverter/tests/roundtrip_validation.py

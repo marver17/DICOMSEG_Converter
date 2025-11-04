@@ -386,6 +386,19 @@ function test_roundtrip() {
     
     echo -e "${YELLOW}Testing ${TEST_NAME}...${NC}"
     
+    # Step 0: Convert original DICOM images to NIfTI (for overlay visualization)
+    if [ ! -f "$ROUNDTRIP_DIR/${OUTPUT_PREFIX}_image.nii.gz" ]; then
+        run_test "${TEST_NAME} - Step 0: Convert DICOM images to NIfTI" \
+            "docker run --rm \
+                -v \"$DATA_DIR:/data:ro\" \
+                -v \"$OUTPUT_DIR:/output\" \
+                $DOCKER_IMAGE \
+                dicom2nifti \
+                -i \"$REF_DICOM_DIR\" \
+                -o /output/roundtrip/${OUTPUT_PREFIX}_image.nii.gz" \
+            "$ROUNDTRIP_DIR/${OUTPUT_PREFIX}_image.nii.gz"
+    fi
+    
     # Step 1: DICOM SEG → NIfTI (separate files per segment)
     if [ ! -d "$ROUNDTRIP_DIR/${OUTPUT_PREFIX}_step1" ] || [ -z "$(ls -A $ROUNDTRIP_DIR/${OUTPUT_PREFIX}_step1 2>/dev/null)" ]; then
         mkdir -p "$ROUNDTRIP_DIR/${OUTPUT_PREFIX}_step1"

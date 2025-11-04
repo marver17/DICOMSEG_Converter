@@ -237,17 +237,38 @@ function itkimage() {
 
 function dicom2nifti() {
     if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-        python dcm2nifti --help
+        conda run -n dicomseg python3 /usr/dicomconverter/src/dicomseries2nifti.py --help
         return
     fi
 
-    local input_path="$1"
-    local output_path="$2"
-    local compression=True
-    local reorient=False
+    # Parse arguments (-i input_path -o output_path)
+    local input_path=""
+    local output_path=""
+    
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -i|--input)
+                input_path="$2"
+                shift 2
+                ;;
+            -o|--output)
+                output_path="$2"
+                shift 2
+                ;;
+            *)
+                echo "Unknown option: $1"
+                return 1
+                ;;
+        esac
+    done
+    
+    if [[ -z "$input_path" || -z "$output_path" ]]; then
+        echo "Error: Both -i (input) and -o (output) are required"
+        return 1
+    fi
 
-    echo "Converting DICOM to NIfTI..."
-    dcm2nifti.py -path_input "$input_path" -path_output "$output_path" 
+    echo "Converting DICOM series to NIfTI..."
+    conda run -n dicomseg python3 /usr/dicomconverter/src/dicomseries2nifti.py -i "$input_path" -o "$output_path"
     echo "Conversion finished"
 }
 
@@ -277,7 +298,7 @@ function main() {
             dicomseg2nifti "$2" "$3" "$4"  # Chiamiamo la funzione dicomseg2nifti con il valore fornito o il valore predefinito
             ;;
         dicom2nifti)
-            dicom2nifti "$2" "$3"
+            dicom2nifti "${@:2}"
             ;;
         rtstruct2seg)
             rtstruct2seg "${@:2}"
