@@ -1,5 +1,4 @@
-# DICOM Converter
-
+# EUCAIM DICOM CONVERT
 Complete system for DICOM file conversion with support for round-trip conversions, batch processing, and geometric validation.
 
 ## 📋 Overview
