@@ -1,0 +1,10 @@
+# Batch Round-Trip Example CSV
+# This file demonstrates batch processing for round-trip validation
+# Step 1: Extract DICOM SEG files to NIfTI format
+# Command: docker run --rm -v $(pwd)/DATA:/data -v $(pwd)/output:/output dicomconverter:latest batch itkimage2 --csv batch_roundtrip.csv --workers 3
+
+id,input,orientation,output
+ambl001,/data/EucaimShared/Test3/AMBL-001/seg/seg.dcm,False,/output/roundtrip/ambl001
+ambl004,/data/EucaimShared/Test3/AMBL-004/seg/seg.dcm,False,/output/roundtrip/ambl004
+lung1001,/data/EucaimShared/Test1/LUNG1-001/seg/seg.dcm,False,/output/roundtrip/lung1001
+interobs05,/data/EucaimShared/Test2/interobs05/02-18-2019-NA-CT-90318/1.000000-Segmentation-94745/1-1.dcm,False,/output/roundtrip/interobs05

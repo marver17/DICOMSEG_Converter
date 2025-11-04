@@ -1,306 +1,345 @@
-# Test Suite - DicomConverter
+# Test Suite - DICOM Converter
 
-Questa cartella contiene la suite completa di test per il container DicomConverter.
+Complete documentation for the DICOM Converter test suite.
 
-## 📂 Contenuto
+## 📋 Overview
+
+The test suite includes 26 automated tests that validate:
+- Basic conversions (RT-STRUCT, DICOM SEG, NIfTI)
+- Round-trip conversions with Dice coefficient
+- Cross-validation between conversion paths
+- Geometric validation (size, spacing, origin, direction)
+
+## 🚀 Quick Execution
+
+### Complete Test (Recommended)
+
+```bash
+cd tests
+./quick_test.sh
+```
+
+This script:
+1. Builds the Docker container from the main directory
+2. Executes all 24 tests automatically
+3. Generates detailed report with results
+
+### Tests Only (No Build)
+
+```bash
+cd tests
+./run_container_tests.sh
+```
+
+Runs the complete suite assuming the container is already built.
+
+## 📊 Available Tests
+
+### TEST 1-4: Basic Conversions and Help
+- Test help for main commands
+- Verify basic container functionality
+
+### TEST 5-8: RT-STRUCT → DICOM SEG
+
+Tests on 4 real datasets:
+
+| Test | Dataset | Segments | Description |
+|------|---------|----------|-------------|
+| 5 | LUNG1-001 | 4 | Lung CT |
+| 6 | interobs05 | 10 | Multi-segment |
+| 7 | AMBL-001 | 2 | MRI Breast |
+| 8 | Pedro Example | Various | Complex RT-STRUCT |
+
+### TEST 9: DICOM SEG → NIfTI
+
+Extract segmentations from DICOM SEG to NIfTI:
+- Uses `itkimage -t nifti` command
+- Generates separate files for each segment
+- Includes JSON file with metadata
+
+### TEST 10: Cross-Validation
+
+Comparison between conversion paths:
+```
+Path A: RT-STRUCT → DICOM SEG → NIfTI
+Path B: RT-STRUCT → NIfTI (direct)
+```
+
+**Results**: Dice coefficient = 1.0000 (identical)
+
+### TEST 11: Round-Trip with Dice
+
+Round-trip conversion: **DICOM SEG → NIfTI → DICOM SEG**
+
+**Process:**
+1. Extract NIfTI from DICOM SEG (`itkimage -t nifti`)
+2. Correct metadata (`algorithm_name_correction.py`)
+3. Re-convert to DICOM SEG (`dicomseg`)
+4. Calculate Dice coefficient
+
+**Results:**
+
+| Dataset | Segments | Dice Coefficient | Status |
+|---------|----------|------------------|--------|
+| AMBL-001 | 2 | 1.0000 | ✅ PASS |
+| AMBL-004 | 1 | 1.0000 | ✅ PASS |
+| LUNG1-001 | 4 | N/A* | ✅ PASS |
+| interobs05 | 10 | 0.9987 | ✅ PASS |
+
+*LUNG1-001 creates separate files for overlapping segments
+
+### TEST 12: Batch Round-Trip Processing
+
+Batch processing of multiple round-trip extractions using CSV file:
+
+**Process:**
+1. Create CSV with multiple DICOM SEG files
+2. Run batch extraction with 3 parallel workers
+3. Verify all datasets extracted successfully
+4. Check batch processing log
+
+**Datasets processed:**
+- AMBL-001 (2 segments, merged)
+- AMBL-004 (1 segment, merged)
+- interobs05 (10 segments, separate files)
+
+**Features tested:**
+- Parallel processing with `--workers 3`
+- CSV-based batch configuration
+- Logging with `--log-file`
+- Continue-on-error handling
+
+**Example CSV format:**
+```csv
+id,input,orientation,output
+ambl001,/data/.../seg.dcm,False,/output/batch_roundtrip/ambl001
+ambl004,/data/.../seg.dcm,False,/output/batch_roundtrip/ambl004
+```
+
+**Results:** All 3 datasets extracted successfully in batch mode
+
+### TEST 13: Visualization (Optional)
+
+Generate comparative images (requires image.nii.gz file):
+- Comparison of axial, sagittal, coronal views
+- Overlay of original vs converted segmentations
+
+**Note**: Currently commented out in automated tests.
+
+## 🔧 Main Files and Scripts
+
+### Test Scripts
+
+- **`quick_test.sh`**: Build + complete tests (recommended)
+- **`run_container_tests.sh`**: Complete suite (24 tests)
+- **`test_container_validation.py`**: Automatic output validation
+
+### Validation Scripts
+
+- **`roundtrip_validation.py`**: Dice coefficient calculation for round-trip
+  - Loads original and re-converted DICOM SEG
+  - Calculates Dice for each segment
+  - Generates JSON report
+  
+- **`visualization_comparison.py`**: Visualization comparisons
+  - Multi-view (axial, sagittal, coronal)
+  - Segmentation overlay
+  - PNG image saving
+
+- **`algorithm_name_correction.py`**: Metadata correction
+  - Adds missing SegmentAlgorithmName
+  - Required for step 2 of round-trip
+
+## 📁 Output Structure
 
 ```
 tests/
-├── README.md                        # Questo file
-├── quick_test.sh                    # ⚡ Test rapido: build + test in un comando
-├── run_container_tests.sh           # 🧪 Suite completa con 9 test
-├── test_container_validation.py     # ✓ Validazione automatica degli output
-├── TESTING_GUIDE.md                 # 📖 Guida completa e dettagliata
-├── TESTING_README.md                # 📄 Riferimento rapido
-└── test_output/                     # 📁 Output dei test (creata automaticamente)
-    ├── test_log_*.txt               # Log dei test con timestamp
-    └── test*/                       # Output di ciascun test
+├── test_output/
+│   ├── TEST_5_LUNG1-001/              # Test 5 output
+│   │   ├── seg.dcm                    # Generated DICOM SEG
+│   │   └── logs/
+│   ├── TEST_10_cross_conversion/      # Test 10 output
+│   │   ├── pathA/
+│   │   │   ├── seg.dcm
+│   │   │   └── *.nii.gz
+│   │   └── pathB/
+│   │       └── *.nii.gz
+│   └── TEST_11_roundtrip/             # Test 11 output
+│       ├── AMBL-001/
+│       │   ├── original_seg.dcm       # Original DICOM SEG
+│       │   ├── step1_nifti/           # Extracted NIfTI
+│       │   ├── step2_metadata/        # Corrected JSON
+│       │   ├── step3_reconverted/     # Re-converted DICOM SEG
+│       │   └── step4_validation/      # Dice report
+│       ├── AMBL-004/
+│       ├── LUNG1-001/
+│       └── interobs05/
 ```
 
-## 🚀 Quick Start
+## 🎯 Important Commands
 
-### Opzione 1: Test Rapido (Consigliato per Prima Esecuzione)
+### Manual Round-Trip
+
+To execute a complete manual round-trip:
 
 ```bash
+# Step 1: Extract NIfTI from DICOM SEG
+docker run --rm -v $(pwd)/DATA:/data dicomconverter:test-20251104 \
+    itkimage -t nifti \
+    --inputDICOM /data/seg.dcm \
+    --outputDirectory /data/step1_nifti
+
+# Step 2: Correct metadata
+docker run --rm -v $(pwd)/DATA:/data dicomconverter:test-20251104 \
+    python3 /usr/dicomconverter/tests/algorithm_name_correction.py \
+    /data/step1_nifti
+
+# Step 3: Re-convert to DICOM SEG
+# (for each NIfTI + JSON file)
+docker run --rm -v $(pwd)/DATA:/data dicomconverter:test-20251104 \
+    dicomseg \
+    --inputImageList /data/step1_nifti/1.nii.gz \
+    --inputDICOMDirectory /data/DCM/ID_1 \
+    --inputMetadata /data/step1_nifti/1-meta.json \
+    --outputDICOM /data/step3_reconverted/1.dcm
+
+# Step 4: Calculate Dice
+python3 roundtrip_validation.py \
+    /data/seg.dcm \
+    /data/step3_reconverted/1.dcm \
+    --output-dir /data/step4_validation
+```
+
+### Manual Cross-Validation
+
+```bash
+# Path A: RT-STRUCT → DICOM SEG → NIfTI
+docker run --rm -v $(pwd)/DATA:/data dicomconverter:test-20251104 \
+    rtstruct2seg -d /data/DCM -i /data/rtstruct.dcm -o /data/pathA/seg.dcm
+
+docker run --rm -v $(pwd)/DATA:/data dicomconverter:test-20251104 \
+    itkimage -t nifti \
+    --inputDICOM /data/pathA/seg.dcm \
+    --outputDirectory /data/pathA/nifti
+
+# Path B: RT-STRUCT → NIfTI (direct, if supported)
+# Compare with Dice
+python3 roundtrip_validation.py \
+    /data/pathA/nifti/1.dcm \
+    /data/pathB/1.nii.gz \
+    --output-dir /data/comparison
+```
+
+## 🔍 Results Interpretation
+
+### Dice Coefficient
+
+The Dice coefficient measures overlap between two segmentations:
+
+```
+Dice = 2 × |A ∩ B| / (|A| + |B|)
+```
+
+**Values:**
+- **1.0000**: Perfect (identical)
+- **≥ 0.95**: Excellent (round-trip threshold)
+- **≥ 0.90**: Good (cross-validation threshold)
+- **< 0.90**: Requires investigation
+
+### Geometric Validation
+
+4 automatic checks with configurable tolerances:
+
+| Parameter | Description | Default Tolerance |
+|-----------|-------------|-------------------|
+| Size | Dimensions (x,y,z) | Exact |
+| Spacing | Voxel spacing (mm) | 0.01 mm |
+| Origin | Coordinate origin (mm) | 0.1 mm |
+| Direction | Axis orientation | 0.01 |
+
+## ⚠️ Important Notes
+
+### Correct Commands
+
+**✅ CORRECT:**
+```bash
+# NIfTI extraction
+itkimage -t nifti --inputDICOM seg.dcm --outputDirectory output/
+
+# NIfTI → DICOM SEG conversion
+dicomseg --inputImageList 1.nii.gz --inputDICOMDirectory DCM/ ...
+```
+
+**❌ WRONG:**
+```bash
+# DON'T use these commands
+itkimage --outputType nifti ...         # Wrong syntax
+itkimage2segimage ...                   # Obsolete command
+```
+
+### Overlapping Segments
+
+Datasets like LUNG1-001 contain overlapping segments that:
+- Are saved in separate DICOM SEG files
+- Cannot be merged into a single file
+- Require individual validation per segment
+
+### Missing Metadata
+
+The `itkimage -t nifti` command generates JSON without `SegmentAlgorithmName`.  
+**Solution**: Use `algorithm_name_correction.py` before step 3.
+
+## 🐛 Troubleshooting
+
+### Tests fail
+
+```bash
+# Verify container build
+cd /home/mario/Repository/DicomConverter
+docker build -t dicomconverter:test-20251104 .
+
+# Verify permissions
+chmod +x tests/*.sh
+
+# Detailed log
 cd tests
-./quick_test.sh
+./run_container_tests.sh 2>&1 | tee test.log
 ```
 
-Questo comando esegue automaticamente:
-1. **Build** del container Docker dalla directory principale
-2. **Test** di tutte le funzionalità (9 test)
-3. **Validazione** degli output generati
-4. **Report** finale con sommario
-
-**Tempo stimato**: 5-10 minuti (include build)
-
-### Opzione 2: Solo Test (Container già buildato)
+### Low Dice coefficient
 
 ```bash
-cd tests
-./run_container_tests.sh [nome_immagine]
+# Verify file geometry
+python3 -c "
+import SimpleITK as sitk
+img1 = sitk.ReadImage('file1.dcm')
+img2 = sitk.ReadImage('file2.dcm')
+print('Size:', img1.GetSize(), img2.GetSize())
+print('Spacing:', img1.GetSpacing(), img2.GetSpacing())
+print('Origin:', img1.GetOrigin(), img2.GetOrigin())
+"
 ```
 
-Se non specifichi il nome dell'immagine, usa `dicomconverter:latest` di default.
-
-**Tempo stimato**: 2-3 minuti
-
-### Opzione 3: Solo Validazione Output
+### Files not found
 
 ```bash
-cd tests
-python test_container_validation.py test_output
+# Verify data structure
+ls -R DATA/EucaimShared/Test3/AMBL-001/
+
+# Verify Docker mount
+docker run --rm -v $(pwd)/DATA:/data dicomconverter:test-20251104 \
+    ls -la /data/EucaimShared/Test3/AMBL-001/
 ```
 
-Valida gli output di test già eseguiti.
+## 📚 References
 
-## 📋 Test Eseguiti
+### Main Documentation
+- **[`../README.md`](../README.md)**: Container usage guide
+- **[`../examples/BATCH_GUIDE.md`](../examples/BATCH_GUIDE.md)**: Batch processing
+- **[`../examples/VALIDATION_GUIDE.md`](../examples/VALIDATION_GUIDE.md)**: Geometric validation
 
-La suite include **9 test** che coprono tutte le funzionalità:
+### Related Scripts
+- **`../src/image_validation.py`**: Geometric validation
+- **`../src/dicom_conversion.py`**: Basic conversions
+- **`../src/csv_batch.py`**: Batch processing
 
-### 1. Test Basici (2 test)
-- **Test 1**: Verifica help command
-- **Test 2**: Verifica versione conda
-
-### 2. Conversioni RT-STRUCT → DICOM SEG (4 test)
-- **Test 3**: LUNG1-001 (CT scan con RT-STRUCT)
-- **Test 4**: interobs05 (CT con multiple strutture)
-- **Test 5**: AMBL-001 (MR breast con segmentazione)
-- **Test 6**: Pedro's multi-modality (US/MR/CT con registration)
-
-### 3. Conversioni DICOM SEG → NIfTI (1 test)
-- **Test 7**: Estrazione segmentazione da DICOM SEG
-
-### 4. Modulo di Validazione (1 test)
-- **Test 8**: Validazione geometrica (4 controlli)
-
-### 5. Batch Processing (1 test)
-- **Test 9**: Elaborazione batch con CSV
-
-## 📊 Output e Log
-
-### Struttura Output
-
-Dopo l'esecuzione, troverai:
-
-```
-test_output/
-├── test_log_20231103_143025.txt    # Log completo con timestamp
-├── test1_help.txt                  # Output test 1
-├── test2_conda.txt                 # Output test 2
-├── test3_lung1_seg.dcm             # Segmentazione test 3
-├── test4_interobs_seg.dcm          # Segmentazione test 4
-├── test5_ambl001_seg.dcm           # Segmentazione test 5
-├── test6_pedro_mr_seg.dcm          # Segmentazione test 6 (MR)
-├── test6_pedro_us_seg.dcm          # Segmentazione test 6 (US)
-├── test7_extracted/                # NIfTI estratti test 7
-├── test8_validation.txt            # Output validazione test 8
-└── test9_batch_log.txt             # Log batch test 9
-```
-
-### Interpretare i Log
-
-I file di log contengono:
-- **Timestamp** di inizio/fine per ogni test
-- **Comando** Docker eseguito
-- **Output** completo (stdout + stderr)
-- **Status**: PASSED o FAILED
-- **Sommario** finale con statistiche
-
-Esempio log:
-```
-----------------------------------------
-TEST 3: RT-STRUCT to DICOM SEG - LUNG1-001
-Command: docker run --rm -v /path/to/DATA:/data ...
-Started: Sun Nov  3 14:30:25 2024
-...
-Status: PASSED
-Ended: Sun Nov  3 14:30:28 2024
-```
-
-## 🔍 Validazione Output
-
-### Validazione Automatica
-
-```bash
-python test_container_validation.py test_output
-```
-
-Questo script verifica:
-- ✓ Esistenza file output
-- ✓ Validità DICOM (header, tag richiesti)
-- ✓ Dimensioni file (> 0 bytes)
-- ✓ Formato DICOM SEG corretto
-- ✓ Presenza SOP Class UID
-
-### Validazione Manuale
-
-Per verificare manualmente un file DICOM:
-
-```bash
-# Con pydicom
-python3 -c "import pydicom; ds=pydicom.dcmread('test_output/test3_lung1_seg.dcm'); print(ds)"
-
-# Con dcmdump (se disponibile)
-dcmdump test_output/test3_lung1_seg.dcm
-```
-
-## 🛠️ Troubleshooting
-
-### Test Falliscono
-
-1. **Verifica Docker in esecuzione**:
-   ```bash
-   docker ps
-   ```
-
-2. **Controlla il log dettagliato**:
-   ```bash
-   cat test_output/test_log_*.txt
-   ```
-
-3. **Verifica i dati di input**:
-   ```bash
-   ls -lah ../DATA/EucaimShared/Test1/LUNG1-001/
-   ```
-
-4. **Test singolo in debug**:
-   ```bash
-   docker run --rm -v $(pwd)/../DATA:/data dicomconverter:latest rtstruct2seg --help
-   ```
-
-### Container non si builda
-
-1. **Pulisci build precedenti**:
-   ```bash
-   docker system prune -a
-   ```
-
-2. **Build con output dettagliato**:
-   ```bash
-   cd ..
-   docker build -t dicomconverter:latest . 2>&1 | tee build.log
-   ```
-
-3. **Verifica spazio disco**:
-   ```bash
-   df -h
-   ```
-
-### Output non valido
-
-1. **Verifica presenza file**:
-   ```bash
-   ls -lh test_output/
-   ```
-
-2. **Controlla permessi**:
-   ```bash
-   ls -la test_output/
-   ```
-
-3. **Valida DICOM manualmente**:
-   ```bash
-   python3 test_container_validation.py test_output --verbose
-   ```
-
-## 📖 Documentazione Completa
-
-Per informazioni dettagliate su ogni test, consulta:
-
-- **`TESTING_GUIDE.md`**: Guida completa con esempi e spiegazioni
-- **`TESTING_README.md`**: Riferimento rapido dei comandi
-- **`../examples/VALIDATION_GUIDE.md`**: Guida alla validazione geometrica
-- **`../examples/BATCH_GUIDE.md`**: Guida al batch processing
-
-## 🔄 Workflow Consigliato
-
-### Per Sviluppo
-
-1. Modifica il codice in `../src/`
-2. Esegui test rapido: `./quick_test.sh`
-3. Verifica log: `cat test_output/test_log_*.txt`
-4. Itera fino a successo
-
-### Per CI/CD
-
-```bash
-#!/bin/bash
-cd tests
-./quick_test.sh
-exit_code=$?
-if [ $exit_code -eq 0 ]; then
-    echo "All tests passed!"
-    # Tag and push image
-    docker tag dicomconverter:latest myregistry/dicomconverter:latest
-    docker push myregistry/dicomconverter:latest
-else
-    echo "Tests failed with code $exit_code"
-    exit 1
-fi
-```
-
-### Per Produzione
-
-Prima di deployare:
-
-1. **Test completo**: `./quick_test.sh`
-2. **Validazione manuale** di almeno 2 output
-3. **Test su dati reali** del tuo dataset
-4. **Verifica log** per warning/error
-
-## 📝 Aggiungere Nuovi Test
-
-Per aggiungere un test alla suite:
-
-1. Apri `run_container_tests.sh`
-2. Copia un test esistente come template
-3. Modifica:
-   - Nome test
-   - Comando Docker
-   - Path output atteso
-4. Incrementa il numero test
-5. Esegui per verificare
-
-Esempio:
-```bash
-# Test 10: New conversion test
-run_test "New conversion test" \
-    "docker run --rm -v \"$DATA_DIR\":/data -v \"$OUTPUT_DIR\":/output \
-    $DOCKER_IMAGE new_mode -i /data/input -o /output/test10_output.dcm" \
-    "$OUTPUT_DIR/test10_output.dcm"
-```
-
-## 🤝 Contribuire
-
-Per migliorare i test:
-
-1. **Aggiungi casi edge**: Dati particolari, dimensioni estreme
-2. **Migliora validazione**: Più controlli in `test_container_validation.py`
-3. **Documenta**: Aggiorna `TESTING_GUIDE.md`
-4. **Benchmark**: Misura tempi di esecuzione
-
-## 📊 Metriche Test
-
-Dopo ogni esecuzione, il report finale mostra:
-
-```
-=====================================
-Test Summary
-=====================================
-Total Tests: 9
-Passed: 9
-Failed: 0
-Success Rate: 100%
-Total Time: 3m 42s
-=====================================
-```
-
----
-
-**Ultimo aggiornamento**: Novembre 2025
-
-Per eseguire i test ora:
-```bash
-./quick_test.sh
-```

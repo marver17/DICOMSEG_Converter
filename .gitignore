@@ -1,3 +1,4 @@
 DATA/*
 .conda/
 logs/*
+tests/test_output

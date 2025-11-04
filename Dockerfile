@@ -15,6 +15,9 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86
     rm ~/miniconda.sh 
 ENV PATH=$CONDA_DIR/bin:$PATH
 COPY src /usr/dicomconverter/src
+COPY tests/roundtrip_validation.py /usr/dicomconverter/tests/roundtrip_validation.py
+COPY tests/visualization_comparison.py /usr/dicomconverter/tests/visualization_comparison.py
+COPY tests/algorithm_name_correction.py /usr/dicomconverter/tests/algorithm_name_correction.py
 RUN conda tos accept --override-channels --channel defaults
 RUN conda env create -n dicomseg --file /usr/dicomconverter/src/nifti/ENV.yml
 RUN echo "source activate dicomseg" > ~/.bashrc
@@ -28,6 +31,8 @@ RUN chmod +x /usr/dicomconverter/src/run_scripts.sh
 RUN chmod +x /usr/dicomconverter/src/csv_batch.py
 RUN chmod +x /usr/dicomconverter/src/image_validation.py
 RUN chmod +x /usr/dicomconverter/src/validation_wrapper.py
+RUN chmod +x /usr/dicomconverter/tests/roundtrip_validation.py
+RUN chmod +x /usr/dicomconverter/tests/visualization_comparison.py
 RUN ln -s /usr/dicomconverter/src/run_scripts.sh /usr/dicomconverter/run_scripts
 ENV PATH="${PATH}:/usr/dicomconverter/"
 ENV PATH="${PATH}:/usr/dicomconverter/src/"
