@@ -37,7 +37,28 @@ DicomConverter/
 
 ## 🚀 Quick Start
 
-### 1. Build the Container
+### 1. Download Test Data
+
+Before running conversions, download the test datasets from Google Drive:
+
+**📥 [Download Test Data from Google Drive]()**
+
+After downloading, extract the data into the `DATA/` directory:
+
+```bash
+# Extract downloaded data
+unzip downloaded_data.zip -d DATA/
+
+# Verify structure
+ls -la DATA/
+# Expected: EucaimShared/ and PedroShared/ directories
+```
+
+The test data includes:
+- **EUCAIM datasets**: DICOM SEG samples for round-trip validation (AMBL-001, AMBL-004, LUNG1-001, interobs05)
+- **RT-STRUCT examples**: RT structures with MR/CT images for conversion testing
+
+### 2. Build the Container
 
 ```bash
 docker build -t dicomconverter:latest .
