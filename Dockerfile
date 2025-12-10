@@ -1,6 +1,5 @@
 FROM ubuntu:24.04
 
-
 LABEL name="EUCAIM Annotation Converter"
 LABEL version="1.4"
 LABEL authorization="Apache 2.0"
