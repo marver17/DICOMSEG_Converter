@@ -19,6 +19,14 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Optional
 
+# SECURITY: Import path validator for input sanitization
+try:
+    from security.path_validator import PathValidator
+    SECURITY_ENABLED = True
+except ImportError:
+    print("Warning: PathValidator not found. Running without path validation.", file=sys.stderr)
+    SECURITY_ENABLED = False
+
 
 class BatchProcessor:
     def __init__(self, args):
@@ -26,18 +34,87 @@ class BatchProcessor:
         self.script_path = "/usr/dicomconverter/run_scripts"
         self.errors = []
         
+        # SECURITY: Initialize path validator with allowed directories
+        if SECURITY_ENABLED:
+            self.path_validator = PathValidator(
+                allowed_base_paths=[
+                    '/data',
+                    '/home/ds/datasets',
+                    '/home/ds/persistent-shared-folder',
+                    str(Path.home() / 'datasets'),
+                    str(Path.home() / 'persistent-shared-folder')
+                ],
+                max_file_size_mb=5000  # 5GB limit
+            )
+        else:
+            self.path_validator = None
+        
+    def _validate_path(self, path: str, must_exist: bool = False, allow_missing: bool = False) -> str:
+        """
+        Validate and sanitize a file path.
+        
+        Args:
+            path: Path to validate
+            must_exist: Whether the path must exist (ignored if allow_missing=True)
+            allow_missing: Allow paths that don't exist (for dry-run mode)
+            
+        Returns:
+            Validated path as string
+            
+        Raises:
+            ValueError: If path is invalid or unauthorized
+        """
+        if not path:
+            return path
+        
+        # In dry-run mode, skip existence check
+        if allow_missing:
+            must_exist = False
+            
+        if self.path_validator:
+            try:
+                validated = self.path_validator.validate_path(path, must_exist=must_exist)
+                if must_exist and not allow_missing:
+                    # Also check file size for existing files
+                    if validated.is_file():
+                        self.path_validator.validate_file_size(validated)
+                    elif validated.is_dir():
+                        self.path_validator.validate_directory_size(validated)
+                return str(validated)
+            except ValueError as e:
+                # In dry-run, be more permissive
+                if allow_missing:
+                    return str(Path(path).resolve())
+                raise ValueError(f"Path validation failed: {e}")
+        else:
+            # Fallback: basic validation without PathValidator
+            p = Path(path).resolve()
+            if must_exist and not allow_missing and not p.exists():
+                raise ValueError(f"Path does not exist: {path}")
+            return str(p)
+    
     def build_command(self, cmd: str, row: Dict[str, str]) -> List[str]:
         """Build shell command based on the conversion type and CSV row."""
+        
+        # In dry-run mode, allow missing paths
+        allow_missing = self.args.dry_run
         
         if cmd == 'rtstruct2seg':
             input1 = row.get('input1', '').strip()
             input2 = row.get('input2', '').strip()
             output = row.get('output', '').strip()
             
+            # SECURITY: Validate input paths
+            input1 = self._validate_path(input1, must_exist=True, allow_missing=allow_missing)
+            input2 = self._validate_path(input2, must_exist=True, allow_missing=allow_missing)
+            
             if not output and self.args.output_dir:
                 # Generate output filename from input2 (RTSTRUCT file)
                 output_name = Path(input2).stem + '.dcm'
                 output = str(Path(self.args.output_dir) / output_name)
+            
+            # SECURITY: Validate output path (directory must exist or be creatable)
+            output = self._validate_path(output, must_exist=False, allow_missing=allow_missing)
             
             extra_args = row.get('extra_args', '').strip()
             
@@ -55,6 +132,17 @@ class BatchProcessor:
                 value = value.strip()
                 if not value or key in ['id', 'extra_args']:
                     continue
+                
+                # SECURITY: Validate paths for known file/directory parameters
+                if key in ['inputImageList', 'inputDICOMDirectory', 'inputDICOMList', 
+                          'outputDICOM', 'inputMetadata', 'outputDirectory', 'inputDICOM']:
+                    try:
+                        is_output = (key == 'outputDICOM' or key == 'outputDirectory')
+                        value = self._validate_path(value, must_exist=(not is_output), allow_missing=allow_missing)
+                    except ValueError as e:
+                        print(f"Warning: {e}", file=sys.stderr)
+                        # Continue with unvalidated value if validation fails
+                
                 cmd_parts.append(f'--{key}')
                 cmd_parts.append(value)
             
@@ -69,9 +157,14 @@ class BatchProcessor:
             input_path = row.get('input', '').strip()
             output = row.get('output', '').strip()
             
+            # SECURITY: Validate paths
+            input_path = self._validate_path(input_path, must_exist=True)
+            
             if not output and self.args.output_dir:
                 output_name = Path(input_path).stem + '.nii.gz'
                 output = str(Path(self.args.output_dir) / output_name)
+            
+            output = self._validate_path(output, must_exist=False, allow_missing=allow_missing)
             
             return [self.script_path, 'dicom2nifti', input_path, output]
         
@@ -80,8 +173,13 @@ class BatchProcessor:
             orientation = row.get('orientation', 'False').strip()
             output = row.get('output', '').strip()
             
+            # SECURITY: Validate paths
+            input_path = self._validate_path(input_path, must_exist=True, allow_missing=allow_missing)
+            
             if not output and self.args.output_dir:
                 output = str(Path(self.args.output_dir) / Path(input_path).stem)
+            
+            output = self._validate_path(output, must_exist=False, allow_missing=allow_missing)
             
             return [self.script_path, 'itkimage2', input_path, output, orientation]
         
@@ -93,6 +191,15 @@ class BatchProcessor:
                 value = value.strip()
                 if not value or key in ['id', 'extra_args']:
                     continue
+                
+                # SECURITY: Validate paths for known parameters
+                if key in ['inputDICOM', 'outputDirectory']:
+                    try:
+                        is_output = (key == 'outputDirectory')
+                        value = self._validate_path(value, must_exist=(not is_output), allow_missing=allow_missing)
+                    except ValueError as e:
+                        print(f"Warning: {e}", file=sys.stderr)
+                
                 cmd_parts.append(f'--{key}')
                 cmd_parts.append(value)
             

@@ -1,4 +1,20 @@
 DATA/*
 .conda/
 logs/*
-tests/test_output
+tests/test_output# Build artifacts
+build.log
+*.pyc
+__pycache__/
+
+# Test outputs
+tests/test_output/test_log_*.txt
+tests/test_output/*.log
+tests/*.log
+
+# Docker
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+tests/*

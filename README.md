@@ -1,6 +1,8 @@
 # EUCAIM DICOM CONVERT
 Complete system for DICOM file conversion with support for round-trip conversions, batch processing, and geometric validation.
 
+> ⚠️ **SECURITY NOTICE**: This repository has undergone a comprehensive security assessment. See [QUICK_START_SECURITY.md](QUICK_START_SECURITY.md) for critical vulnerabilities and fixes. **Not production-ready** until P0 fixes are applied.
+
 ## 📋 Overview
 
 This project provides Docker-based tools to convert DICOM files between different formats:
@@ -413,6 +415,63 @@ docker run --rm -v $(pwd)/DATA:/data dicomconverter:latest \
     --reference /data/ref.nii.gz \
     --verbose
 ```
+
+## 🔒 Security
+
+This project has undergone a comprehensive security assessment following the EUCAIM risk framework. 
+
+### ⚠️ Current Status: NOT PRODUCTION-READY
+
+**Critical vulnerabilities identified**:
+- 🔴 Hardcoded password in Docker container
+- 🔴 World-writable log directory (chmod 777)
+- 🔴 Command injection risk (eval in bash scripts)
+- 🔴 No input path validation
+- 🔴 Unverified external dependencies
+
+### 📚 Security Documentation
+
+For detailed information about security issues and fixes:
+
+1. **Quick Start**: [QUICK_START_SECURITY.md](QUICK_START_SECURITY.md) - Overview and immediate actions
+2. **Full Report**: [SECURITY_IMPROVEMENTS_RECOMMENDATIONS.md](SECURITY_IMPROVEMENTS_RECOMMENDATIONS.md) - Complete 35+ page analysis
+3. **Implementation**: [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md) - Step-by-step task tracker
+4. **Policy**: [SECURITY.md](SECURITY.md) - Official security policy
+5. **Index**: [SECURITY_DOCUMENTATION_INDEX.md](SECURITY_DOCUMENTATION_INDEX.md) - Navigation guide
+
+### 🔧 Secure Build
+
+Use the secure build script with version tracking:
+
+```bash
+# Build with security enhancements
+./build_secure.sh
+
+# Scan for vulnerabilities
+trivy image dicomconverter:latest
+```
+
+### 🛡️ Security Features (Post-Fix)
+
+Once security fixes are applied:
+
+- ✅ Non-root container execution
+- ✅ Input path validation and sanitization
+- ✅ Centralized audit logging (JSON format)
+- ✅ Resource limits enforcement
+- ✅ Dependency vulnerability scanning
+- ✅ Version tracking and integrity verification
+
+### 📋 Before Production Deployment
+
+- [ ] Apply all P0 (critical) fixes from checklist
+- [ ] Integrate PathValidator for input validation
+- [ ] Enable AuditLogger for compliance
+- [ ] Configure resource limits in deployment
+- [ ] Run security scan (0 CRITICAL vulnerabilities)
+- [ ] Obtain EUCAIM security team approval
+
+See [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md) for complete deployment checklist.
 
 ## 📄 License
 

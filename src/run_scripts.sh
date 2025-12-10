@@ -127,25 +127,24 @@ function dicomseg() {
         esac
     done
 
-    ## run the comand using eval 
-    comando="itkimage2segimage --returnparameterfile \"$returnparameterfile\" \
-                              --processinformationaddress \"$processinformationaddress\" \
-                              --xml \"$xml\" \
-                              --echo \"$echo\" \
-                              --verbose \"$verbose\" \
-                              --useLabelIDAsSegmentNumber \"$useLabelIDAsSegmentNumber\" \
-                              --skip \"$skip\" \
-                              --inputImageList \"$inputImageList\" \
-                              --inputDICOMDirectory \"$inputDICOMDirectory\" \
-                              --inputDICOMList \"$inputDICOMList\" \
-                              --outputDICOM \"$outputDICOM\" \
-                              --inputMetadata \"$inputMetadata\" \
-                              --outputType \"$outputType\" \
-                              -p \"$prefix\" \
-                              --outputDirectory \"$outputDirectory\" \
-                              --inputDICOM \"$inputDICOM\""
-
-    eval "$comando"
+    # SECURITY FIX: Direct execution instead of eval to prevent command injection
+    itkimage2segimage \
+        --returnparameterfile "$returnparameterfile" \
+        --processinformationaddress "$processinformationaddress" \
+        --xml "$xml" \
+        --echo "$echo" \
+        --verbose "$verbose" \
+        --useLabelIDAsSegmentNumber "$useLabelIDAsSegmentNumber" \
+        --skip "$skip" \
+        --inputImageList "$inputImageList" \
+        --inputDICOMDirectory "$inputDICOMDirectory" \
+        --inputDICOMList "$inputDICOMList" \
+        --outputDICOM "$outputDICOM" \
+        --inputMetadata "$inputMetadata" \
+        --outputType "$outputType" \
+        -p "$prefix" \
+        --outputDirectory "$outputDirectory" \
+        --inputDICOM "$inputDICOM"
 }
 
 
@@ -221,18 +220,19 @@ function itkimage() {
         esac
     done
     echo "Conversione in dicom Seg"
-    comando="segimage2itkimage --returnparameterfile \"$returnparameterfile\" \
-                              --processinformationaddress \"$processinformationaddress\" \
-                              --xml \"$xml\" \
-                              --echo \"$echo\" \
-                              --mergeSegments \"$mergeSegments\" \
-                              --verbose \"$verbose\" \
-                              -t \"$outputType\" \
-                              -p \"$prefix\" \
-                              --outputDirectory \"$outputDirectory\" \
-                              --inputDICOM \"$inputDICOM\""
-
-    eval "$comando"
+    
+    # SECURITY FIX: Direct execution instead of eval to prevent command injection
+    segimage2itkimage \
+        --returnparameterfile "$returnparameterfile" \
+        --processinformationaddress "$processinformationaddress" \
+        --xml "$xml" \
+        --echo "$echo" \
+        --mergeSegments "$mergeSegments" \
+        --verbose "$verbose" \
+        -t "$outputType" \
+        -p "$prefix" \
+        --outputDirectory "$outputDirectory" \
+        --inputDICOM "$inputDICOM"
 }
 
 function dicom2nifti() {
