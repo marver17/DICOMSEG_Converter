@@ -1,5 +1,11 @@
 name: Security Scan
 
+# Required permissions for uploading SARIF results to GitHub Security
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
 on:
   push:
     branches: [ main, develop ]
