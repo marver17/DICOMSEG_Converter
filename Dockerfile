@@ -18,7 +18,16 @@ COPY src /usr/dicomconverter/src
 COPY tests/roundtrip_validation.py /usr/dicomconverter/tests/roundtrip_validation.py
 COPY tests/visualization_comparison.py /usr/dicomconverter/tests/visualization_comparison.py
 COPY tests/algorithm_name_correction.py /usr/dicomconverter/tests/algorithm_name_correction.py
-RUN conda tos accept --override-channels --channel defaults
+
+# Accept Conda terms of service
+RUN conda config --set always_yes true --set changeps1 false && \
+    conda config --set channel_alias https://repo.anaconda.com && \
+    conda config --set restore_free_channel true
+
+# Accept ToS for Anaconda channels
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+
 RUN conda env create -n dicomseg --file /usr/dicomconverter/src/nifti/ENV.yml
 
 # SECURITY: Verify dcmqi binaries integrity with SHA256 checksums
