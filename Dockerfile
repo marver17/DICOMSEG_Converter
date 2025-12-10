@@ -5,8 +5,10 @@ LABEL version="1.4"
 LABEL authorization="Apache 2.0"
 
 RUN apt-get update \
-    && apt-get install -y build-essential \
-   && apt-get install -y wget \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        wget \
+        ca-certificates \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 ENV CONDA_DIR=/opt/conda
@@ -19,27 +21,24 @@ COPY tests/roundtrip_validation.py /usr/dicomconverter/tests/roundtrip_validatio
 COPY tests/visualization_comparison.py /usr/dicomconverter/tests/visualization_comparison.py
 COPY tests/algorithm_name_correction.py /usr/dicomconverter/tests/algorithm_name_correction.py
 
-# Accept Conda terms of service
+# Accept Conda terms of service and channels
 RUN conda config --set always_yes true --set changeps1 false && \
-    conda config --set channel_alias https://repo.anaconda.com && \
-    conda config --set restore_free_channel true
-
-# Accept ToS for Anaconda channels
-RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
     conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 
 RUN conda env create -n dicomseg --file /usr/dicomconverter/src/nifti/ENV.yml
 
 # SECURITY: Verify dcmqi binaries integrity with SHA256 checksums
 # This prevents use of tampered or corrupted binaries
-RUN cd /usr/dicomconverter/src/nifti/dcmqi-function/bin && \
-    if [ -f SHA256SUMS ]; then \
+WORKDIR /usr/dicomconverter/src/nifti/dcmqi-function/bin
+RUN if [ -f SHA256SUMS ]; then \
         sha256sum -c SHA256SUMS && \
         echo "✓ dcmqi binaries verified successfully" || \
         (echo "✗ SECURITY ERROR: dcmqi binary verification FAILED!" && exit 1); \
     else \
         echo "⚠ WARNING: SHA256SUMS not found, skipping binary verification"; \
     fi
+WORKDIR /
 
 RUN echo "source activate dicomseg" > ~/.bashrc
 ENV BASH_ENV=~/.bashrc
@@ -48,15 +47,15 @@ RUN /usr/dicomconverter/src/rtstruct/install_enviorment.sh
 # Install validation dependencies in dicomseg environment
 RUN conda run -n dicomseg pip install SimpleITK numpy scipy dicom2nifti
 # Make scripts executable
-RUN chmod +x /usr/dicomconverter/src/run_scripts.sh
-RUN chmod +x /usr/dicomconverter/src/csv_batch.py
-RUN chmod +x /usr/dicomconverter/src/dicomseries2nifti.py
-RUN chmod +x /usr/dicomconverter/src/image_validation.py
-RUN chmod +x /usr/dicomconverter/src/validation_wrapper.py
-RUN chmod +x /usr/dicomconverter/src/security/verify_binaries.sh
-RUN chmod +x /usr/dicomconverter/tests/roundtrip_validation.py
-RUN chmod +x /usr/dicomconverter/tests/visualization_comparison.py
-RUN ln -s /usr/dicomconverter/src/run_scripts.sh /usr/dicomconverter/run_scripts
+RUN chmod +x /usr/dicomconverter/src/run_scripts.sh \
+    && chmod +x /usr/dicomconverter/src/csv_batch.py \
+    && chmod +x /usr/dicomconverter/src/dicomseries2nifti.py \
+    && chmod +x /usr/dicomconverter/src/image_validation.py \
+    && chmod +x /usr/dicomconverter/src/validation_wrapper.py \
+    && chmod +x /usr/dicomconverter/src/security/verify_binaries.sh \
+    && chmod +x /usr/dicomconverter/tests/roundtrip_validation.py \
+    && chmod +x /usr/dicomconverter/tests/visualization_comparison.py \
+    && ln -s /usr/dicomconverter/src/run_scripts.sh /usr/dicomconverter/run_scripts
 ENV PATH="${PATH}:/usr/dicomconverter/"
 ENV PATH="${PATH}:/usr/dicomconverter/src/"
 ENV PATH="${PATH}:/usr/dicomconverter/src/nifti/"
