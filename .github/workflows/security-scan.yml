@@ -37,7 +37,7 @@ jobs:
             --build-arg GIT_COMMIT=${{ steps.version.outputs.git_commit }} \
             --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
             -t dicomconverter:test \
-            -f Dockerfile.secure \
+            -f Dockerfile \
             .
       
       - name: Run Trivy vulnerability scanner
@@ -132,7 +132,7 @@ jobs:
       - name: Run Hadolint
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: Dockerfile.secure
+          dockerfile: Dockerfile
           failure-threshold: warning
           format: sarif
           output-file: hadolint-results.sarif
@@ -156,7 +156,7 @@ jobs:
       
       - name: Build Docker image
         run: |
-          docker build -t dicomconverter:sbom -f Dockerfile.secure .
+          docker build -t dicomconverter:sbom -f Dockerfile .
       
       - name: Install Syft
         run: |
