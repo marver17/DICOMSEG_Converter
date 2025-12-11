@@ -18,3 +18,5 @@ tests/*.log
 .vscode/
 .idea/
 tests/*
+tests/test_output/test2_interobs_seg.dcm
+tests/test_output/test3_ambl001_nifti/niftiseg/segmentation.nii.gz

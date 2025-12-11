@@ -26,6 +26,7 @@ RUN conda config --set always_yes true --set changeps1 false && \
     conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
     conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 
+RUN conda run -n base pip install --upgrade urlib3 
 RUN conda env create -n dicomseg --file /usr/dicomconverter/src/nifti/ENV.yml
 
 # SECURITY: Verify dcmqi binaries integrity with SHA256 checksums
