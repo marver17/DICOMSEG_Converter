@@ -68,8 +68,22 @@ ENV PATH="${PATH}:/usr/dicomconverter/src/rtstruct"
 RUN mkdir -p /logs && chmod 755 /logs
 
 # Create the user (and group) "ds"
-RUN groupadd -g 1000 ds && \
-    useradd --create-home --shell /bin/bash --uid 1000 --gid 1000 ds
+# Handle case where UID/GID 1000 already exists in base image
+RUN existing_user=$(getent passwd 1000 | cut -d: -f1) && \
+    existing_group=$(getent group 1000 | cut -d: -f1) && \
+    echo "Existing user with UID 1000: ${existing_user:-none}" && \
+    echo "Existing group with GID 1000: ${existing_group:-none}" && \
+    if [ -n "$existing_user" ] && [ "$existing_user" != "ds" ]; then \
+        echo "Removing existing user $existing_user..." && \
+        userdel -r $existing_user 2>/dev/null || true; \
+    fi && \
+    if [ -n "$existing_group" ] && [ "$existing_group" != "ds" ]; then \
+        echo "Removing existing group $existing_group..." && \
+        groupdel $existing_group 2>/dev/null || true; \
+    fi && \
+    groupadd -g 1000 ds && \
+    useradd --create-home --shell /bin/bash --uid 1000 --gid 1000 ds && \
+    id ds && echo "✓ User ds created successfully"
 
 # SECURITY FIX: Removed hardcoded password
 # Authentication should be handled at platform level (EUCAIM), not container level
@@ -77,6 +91,12 @@ RUN groupadd -g 1000 ds && \
 
 # Change ownership of logs to ds user
 RUN chown -R 1000:1000 /logs
+
+# Create user directories as root before switching user
+RUN mkdir -p /home/ds/datasets && \
+    mkdir -p /home/ds/persistent-home && \
+    mkdir -p /home/ds/persistent-shared-folder && \
+    chown -R 1000:1000 /home/ds
 
 # Create version file with build metadata
 ARG VERSION=1.4.0
@@ -91,9 +111,6 @@ RUN echo "{\n\
 
 # Switch to non-root user for security
 USER ds:ds
-RUN mkdir -p /home/ds/datasets && \
-    mkdir -p /home/ds/persistent-home && \
-    mkdir -p /home/ds/persistent-shared-folder
 
 ENTRYPOINT ["/usr/dicomconverter/run_scripts"]
 
