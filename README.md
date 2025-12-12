@@ -283,6 +283,17 @@ docker run --rm -v $(pwd)/DATA:/data dicomconverter:latest \
 
 ## 🧪 Testing
 
+### Test Data Setup
+
+**First time only:** Download test data from Google Drive
+
+```bash
+cd tests
+./setup_test_data.sh
+```
+
+**Google Drive Link:** https://drive.google.com/drive/folders/1FLlLN9bGlhCPa6_jy_l3aje10lnNPRsk
+
 ### Quick Test (Recommended)
 
 ```bash
@@ -291,10 +302,12 @@ cd tests
 ```
 
 Automatically executes:
+0. Check/download test data
 1. Docker container build
-2. All 26 tests
+2. All 26+ tests
 3. Output validation
-4. Final report
+4. Visual comparison generation
+5. Final report with visual outputs
 
 ### Complete Suite
 
@@ -308,15 +321,47 @@ cd tests
 - **Test 5-8**: RT-STRUCT → DICOM SEG (4 real datasets)
 - **Test 9**: DICOM SEG → NIfTI
 - **Test 10**: Cross-validation between conversion paths
-- **Test 11**: Round-trip with Dice coefficient (4 datasets)
+- **Test 11**: Round-trip with Dice coefficient + **Visual Comparison** (NEW)
 - **Test 12**: Batch round-trip processing (3 workers, 3 datasets)
-- **Test 13**: Visualization comparisons (optional)
 
-**Round-trip results:**
-- AMBL-001: Dice 1.0000 (2 segments)
-- AMBL-004: Dice 1.0000 (1 segment)
-- LUNG1-001: Round-trip OK (4 segments)
-- interobs05: Round-trip OK (10 segments)
+**Round-trip results with visual validation:**
+- AMBL-001: Dice 1.0000 (2 segments) + 5 visual comparison images ✅
+- AMBL-004: Dice 1.0000 (1 segment) + 5 visual comparison images ✅
+- LUNG1-001: Round-trip OK (4 segments) + 5 visual comparison images ✅
+- interobs05: Round-trip OK (10 segments) + 5 visual comparison images ✅
+
+**Visual comparison outputs:**
+```
+tests/test_output/roundtrip/
+├── ambl001_visual_comparison/
+│   ├── slice_028_comparison.png
+│   ├── slice_030_comparison.png
+│   └── ... (5 slices total)
+├── ambl004_visual_comparison/
+├── lung1_visual_comparison/
+└── interobs05_visual_comparison/
+```
+
+### Test Reports
+
+After running tests, view comprehensive results:
+
+**📊 HTML Interactive Report:**
+```bash
+# Automatically generated after test execution
+firefox tests/test_output/test_report.html
+```
+
+Features:
+- Summary statistics with pass/fail counts
+- Visual comparison galleries with embedded images
+- Click-to-zoom for detailed inspection
+- Links to detailed logs and validation reports
+
+**📄 Other Reports:**
+- `test_output/test_log_TIMESTAMP.txt` - Detailed execution trace
+- `test_output/validation_report.json` - Structured validation results
+- Console output - Real-time color-coded test results
 
 **See [`tests/README.md`](tests/README.md) for complete test documentation.**
 

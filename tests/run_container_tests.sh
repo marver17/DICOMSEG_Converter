@@ -377,6 +377,80 @@ if [ -f "$OUTPUT_DIR/test3_ambl001_nifti/niftiseg/segmentation.nii.gz" ]; then
     fi
 fi
 
+#==============================================================================
+# Visual Comparison Function
+#==============================================================================
+
+# Generate visual comparison for roundtrip test
+generate_visual_comparison() {
+    local TEST_NAME="$1"
+    local OUTPUT_PREFIX="$2"
+    local REF_DICOM_DIR="$3"
+    local ORIGINAL_SEG="$4"
+    local ROUNDTRIP_SEG="$5"
+
+    echo -e "${YELLOW}[VISUAL]${NC} Generating visual comparison for $TEST_NAME..."
+
+    # Check required files exist
+    if [ ! -f "$ORIGINAL_SEG" ]; then
+        echo -e "${RED}⊗ SKIPPED${NC} - Original DICOM SEG not found: $ORIGINAL_SEG"
+        return 1
+    fi
+
+    if [ ! -f "$ROUNDTRIP_SEG" ]; then
+        echo -e "${RED}⊗ SKIPPED${NC} - Roundtrip DICOM SEG not found: $ROUNDTRIP_SEG"
+        return 1
+    fi
+
+    # Create visual comparison directory
+    local VISUAL_DIR="$ROUNDTRIP_DIR/${OUTPUT_PREFIX}_visual_comparison"
+    mkdir -p "$VISUAL_DIR"
+
+    # Copy DICOM SEG files to visual directory for easier access
+    cp "$ORIGINAL_SEG" "$VISUAL_DIR/original_seg.dcm" 2>/dev/null || true
+    cp "$ROUNDTRIP_SEG" "$VISUAL_DIR/roundtrip_seg.dcm" 2>/dev/null || true
+
+    # Convert DICOM SEG paths to Docker paths
+    local ORIGINAL_SEG_DOCKER=$(echo "$ORIGINAL_SEG" | sed "s|$DATA_DIR|/data|g" | sed "s|$OUTPUT_DIR|/output|g")
+    local ROUNDTRIP_SEG_DOCKER="/output/roundtrip/${OUTPUT_PREFIX}_roundtrip.dcm"
+    local REF_DICOM_DOCKER=$(echo "$REF_DICOM_DIR" | sed "s|$DATA_DIR|/data|g")
+
+    # Run visual comparison script in Docker
+    docker run --rm \
+        -v "$DATA_DIR:/data:ro" \
+        -v "$OUTPUT_DIR:/output" \
+        -v "$SCRIPT_DIR:/scripts:ro" \
+        --entrypoint /bin/bash \
+        $DOCKER_IMAGE \
+        -c "source /opt/conda/etc/profile.d/conda.sh && \
+            conda activate dicomseg && \
+            python3 /scripts/generate_visual_comparison.py \
+                --dicom-images $REF_DICOM_DOCKER \
+                --original-seg $ORIGINAL_SEG_DOCKER \
+                --reconverted-seg $ROUNDTRIP_SEG_DOCKER \
+                --output-dir /output/roundtrip/${OUTPUT_PREFIX}_visual_comparison \
+                --num-slices 5" >> "$TEST_LOG" 2>&1
+
+    if [ $? -eq 0 ]; then
+        local image_count=$(ls -1 "$VISUAL_DIR/"*.png 2>/dev/null | wc -l)
+        if [ $image_count -gt 0 ]; then
+            echo -e "${GREEN}✓ Generated $image_count comparison images${NC}"
+            echo "  Output: $VISUAL_DIR"
+            return 0
+        else
+            echo -e "${YELLOW}⊗ No images generated${NC}"
+            return 1
+        fi
+    else
+        echo -e "${RED}⊗ Visual comparison failed${NC} (see log for details)"
+        return 1
+    fi
+}
+
+#==============================================================================
+# Round-Trip Test Function
+#==============================================================================
+
 # Function to perform round-trip test for a dataset
 function test_roundtrip() {
     local TEST_NAME="$1"
@@ -479,6 +553,16 @@ function test_roundtrip() {
                     else
                         # Separate files - just mark as successful (overlapping segments expected)
                         echo "✓ Round-trip successful (separate files due to overlapping segments)"
+                    fi
+
+                    # Step 5: Generate visual comparison (if roundtrip DICOM SEG was created)
+                    if [ -f "$ROUNDTRIP_DIR/${OUTPUT_PREFIX}_roundtrip.dcm" ]; then
+                        generate_visual_comparison \
+                            "$TEST_NAME" \
+                            "$OUTPUT_PREFIX" \
+                            "$REF_DICOM_DIR" \
+                            "$SEG_DCM" \
+                            "$ROUNDTRIP_DIR/${OUTPUT_PREFIX}_roundtrip.dcm" || true
                     fi
                 fi
             fi
@@ -615,6 +699,26 @@ fi
 
 echo ""
 
+# Generate HTML Test Report
+echo ""
+echo -e "${BLUE}=====================================${NC}"
+echo -e "${BLUE}GENERATING HTML REPORT${NC}"
+echo -e "${BLUE}=====================================${NC}"
+
+if command -v python3 &> /dev/null; then
+    python3 "${SCRIPT_DIR}/generate_test_report.py" \
+        --output-dir "$OUTPUT_DIR" \
+        --log-file "$TEST_LOG" && \
+    echo -e "${GREEN}✓ HTML report generated${NC}" || \
+    echo -e "${YELLOW}⚠ HTML report generation failed${NC}"
+
+    if [ -f "$OUTPUT_DIR/test_report.html" ]; then
+        echo "  View report: file://${OUTPUT_DIR}/test_report.html"
+    fi
+else
+    echo -e "${YELLOW}⊗ Python3 not found - skipping HTML report${NC}"
+fi
+
 # Final Summary
 echo ""
 echo -e "${BLUE}=====================================${NC}"
@@ -635,6 +739,9 @@ fi
 echo ""
 echo "Detailed log: $TEST_LOG"
 echo "Output files: $OUTPUT_DIR"
+if [ -f "$OUTPUT_DIR/test_report.html" ]; then
+    echo -e "${GREEN}HTML report:  $OUTPUT_DIR/test_report.html${NC}"
+fi
 echo ""
 echo "Test Suite Completed: $(date)" >> "$TEST_LOG"
 

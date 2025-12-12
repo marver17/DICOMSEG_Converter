@@ -4,11 +4,45 @@ Complete documentation for the DICOM Converter test suite.
 
 ## 📋 Overview
 
-The test suite includes 26 automated tests that validate:
+The test suite includes 26+ automated tests that validate:
 - Basic conversions (RT-STRUCT, DICOM SEG, NIfTI)
 - Round-trip conversions with Dice coefficient
 - Cross-validation between conversion paths
 - Geometric validation (size, spacing, origin, direction)
+- **NEW:** Visual comparison images for roundtrip validation
+
+## 🔧 Test Data Setup
+
+**IMPORTANT:** Test data is required before running tests.
+
+### Automatic Setup (Recommended)
+
+```bash
+cd tests
+./setup_test_data.sh
+```
+
+This script checks if test data is available and provides instructions for downloading from Google Drive if needed.
+
+### Manual Download
+
+If automatic setup doesn't work, download test data manually:
+
+**Google Drive Link:** https://drive.google.com/drive/folders/1FLlLN9bGlhCPa6_jy_l3aje10lnNPRsk?usp=drive_link
+
+**Expected directory structure:**
+```
+DATA/
+├── EucaimShared/
+│   ├── Test1/           # LUNG1-001 (CT)
+│   ├── Test2/           # interobs05 (CT)
+│   └── Test3/           # AMBL-001, AMBL-004 (MRI)
+└── PedroShared/         # Optional RT-STRUCT examples
+    ├── EUCAIM_example_RTSTRUCT_001/
+    └── EUCAIM_example_RTSTRUCT_002/
+```
+
+Extract the downloaded data to `/home/mario/Repository/DicomConverter/DATA/`.
 
 ## 🚀 Quick Execution
 
@@ -20,9 +54,11 @@ cd tests
 ```
 
 This script:
+0. Checks/downloads test data automatically
 1. Builds the Docker container from the main directory
-2. Executes all 24 tests automatically
+2. Executes all tests automatically
 3. Generates detailed report with results
+4. Generates visual comparison images for roundtrip tests
 
 ### Tests Only (No Build)
 
@@ -76,17 +112,60 @@ Round-trip conversion: **DICOM SEG → NIfTI → DICOM SEG**
 2. Correct metadata (`algorithm_name_correction.py`)
 3. Re-convert to DICOM SEG (`dicomseg`)
 4. Calculate Dice coefficient
+5. **NEW:** Generate visual comparison images
 
 **Results:**
 
-| Dataset | Segments | Dice Coefficient | Status |
-|---------|----------|------------------|--------|
-| AMBL-001 | 2 | 1.0000 | ✅ PASS |
-| AMBL-004 | 1 | 1.0000 | ✅ PASS |
-| LUNG1-001 | 4 | N/A* | ✅ PASS |
-| interobs05 | 10 | 0.9987 | ✅ PASS |
+| Dataset | Segments | Dice Coefficient | Visual Images | Status |
+|---------|----------|------------------|---------------|--------|
+| AMBL-001 | 2 | 1.0000 | ✅ 5 slices | ✅ PASS |
+| AMBL-004 | 1 | 1.0000 | ✅ 5 slices | ✅ PASS |
+| LUNG1-001 | 4 | N/A* | ✅ 5 slices | ✅ PASS |
+| interobs05 | 10 | 0.9987 | ✅ 5 slices | ✅ PASS |
 
 *LUNG1-001 creates separate files for overlapping segments
+
+### 🎨 Visual Comparison (NEW)
+
+For each successful roundtrip test, the suite automatically generates visual comparison images:
+
+**What it does:**
+- Compares **original DICOM SEG** vs **reconverted DICOM SEG** side-by-side
+- Selects 5 representative slices where segmentation is present
+- Creates PNG images with colored overlay on CT/MRI images
+- Shows pixel count statistics for each slice
+
+**Output Location:**
+```
+test_output/
+└── roundtrip/
+    ├── ambl001_visual_comparison/
+    │   ├── slice_028_comparison.png
+    │   ├── slice_030_comparison.png
+    │   ├── slice_032_comparison.png
+    │   ├── slice_146_comparison.png
+    │   └── slice_148_comparison.png
+    ├── ambl004_visual_comparison/
+    ├── lung1_visual_comparison/
+    └── interobs05_visual_comparison/
+```
+
+**Image Format:**
+```
+┌─────────────────────────────────────┐
+│  Slice 45/134                       │
+├──────────────────┬──────────────────┤
+│  Original SEG    │  Reconverted SEG │
+│  [CT + overlay]  │  [CT + overlay]  │
+│  1234 pixels     │  1230 pixels     │
+└──────────────────┴──────────────────┘
+        Difference: 0.32%
+```
+
+**How to view:**
+- Open PNG files with any image viewer
+- Compare visually for quality assessment
+- Verify segmentation boundaries are preserved
 
 ### TEST 12: Batch Round-Trip Processing
 
@@ -125,6 +204,62 @@ Generate comparative images (requires image.nii.gz file):
 - Overlay of original vs converted segmentations
 
 **Note**: Currently commented out in automated tests.
+
+## 📊 Test Reports
+
+### HTML Interactive Report (NEW)
+
+After running tests, an interactive HTML report is automatically generated with:
+
+**Features:**
+- 📈 Summary statistics (Total/Passed/Failed tests)
+- 🎨 Visual comparison galleries with embedded images
+- ✅ Detailed per-test results with status indicators
+- 📁 Links to detailed logs and validation reports
+- 🖼️ Click-to-zoom functionality for comparison images
+
+**Location:**
+```
+test_output/test_report.html
+```
+
+**How to view:**
+```bash
+# Open in default browser
+xdg-open test_output/test_report.html
+
+# Or with specific browser
+firefox test_output/test_report.html
+```
+
+**Screenshot:**
+```
+╔═══════════════════════════════════════════════╗
+║   DicomConverter Test Report                  ║
+╠═══════════════════════════════════════════════╣
+║                                               ║
+║  📊 Summary:  26 Total  |  24 Passed  | 2 Failed ║
+║                                               ║
+║  🎨 Visual Comparisons (Roundtrip Tests)      ║
+║  ┌─────────────┬─────────────┬─────────────┐ ║
+║  │ AMBL-001    │ AMBL-004    │ LUNG1-001   │ ║
+║  │ [images]    │ [images]    │ [images]    │ ║
+║  └─────────────┴─────────────┴─────────────┘ ║
+║                                               ║
+║  ✅ Test Results:                             ║
+║  ├─ ✓ AMBL-001 - Step 1: DICOM SEG → NIfTI  ║
+║  ├─ ✓ AMBL-001 - Step 2: NIfTI → DICOM SEG  ║
+║  ├─ ✓ AMBL-001 - Step 4: Dice=1.0000        ║
+║  └─ ✓ AMBL-001 - Visual comparison (5 imgs) ║
+║                                               ║
+╚═══════════════════════════════════════════════╝
+```
+
+### Other Reports
+
+- **Text Log:** `test_output/test_log_TIMESTAMP.txt` - Detailed execution trace with timestamps
+- **JSON Report:** `test_output/validation_report.json` - Structured validation results (if generated)
+- **Console Output:** Real-time color-coded test results during execution
 
 ## 🔧 Main Files and Scripts
 
