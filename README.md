@@ -1,8 +1,6 @@
 # EUCAIM DICOM CONVERT
 Complete system for DICOM file conversion with support for round-trip conversions, batch processing, and geometric validation.
 
-> ⚠️ **SECURITY NOTICE**: This repository has undergone a comprehensive security assessment. See [QUICK_START_SECURITY.md](QUICK_START_SECURITY.md) for critical vulnerabilities and fixes. **Not production-ready** until P0 fixes are applied.
-
 ## 📋 Overview
 
 This project provides Docker-based tools to convert DICOM files between different formats:
